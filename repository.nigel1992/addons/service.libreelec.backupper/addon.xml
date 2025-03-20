@@ -13,7 +13,10 @@
         <license>GPL-2.0-or-later</license>
         <forum>https://forum.libreelec.tv/</forum>
         <source>https://github.com/Nigel1992/service.libreelec.backupper</source>
-        <news>v1.2.1.1 (2025-03-18)
+        <news>v1.3.1.1 (2025-03-20)
+- Fixed repository integration
+
+v1.2.1.1 (2025-03-18)
 - Fixed incorrect reminder notification messages
 - Fixed string IDs for backup time notifications
 
@@ -24,7 +27,6 @@ v1.2.1 (2025-03-18)
 - Removed DEBUG multiple backups option
 
 v1.2.0 (2025-03-16)
-- Added automated backups with flexible scheduling
 - Added debug mode for multiple backups per day
 - Added countdown notifications for scheduled backups
 - Added persistent upload notifications
