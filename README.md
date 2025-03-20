@@ -1,6 +1,15 @@
 # Nigel1992 Kodi Repository
 
+<div align="center">
+
 ![Repository Banner](repository.nigel1992/addons/repository.nigel1992/fanart.jpg)
+
+[![Latest Release](https://img.shields.io/github/v/release/Nigel1992/kodi-repository?label=Latest%20Release&style=for-the-badge)](https://github.com/Nigel1992/kodi-repository/releases/latest)
+[![Last Updated](https://img.shields.io/github/last-commit/Nigel1992/kodi-repository?label=Last%20Updated&style=for-the-badge)](https://github.com/Nigel1992/kodi-repository/commits/master)
+[![License](https://img.shields.io/github/license/Nigel1992/kodi-repository?style=for-the-badge)](LICENSE)
+[![Stars](https://img.shields.io/github/stars/Nigel1992/kodi-repository?style=for-the-badge)](https://github.com/Nigel1992/kodi-repository/stargazers)
+
+</div>
 
 A modern, well-structured repository for Kodi addons featuring LibreELEC utilities and more.
 
