@@ -27,6 +27,9 @@ jobs:
         run: |
           git config --local user.email "action@github.com"
           git config --local user.name "GitHub Action"
+          # Add all changes in the addons directory (including zip files and version directories)
+          git add repository.nigel1992/addons/
+          # Ensure the main XML files are added (if they weren't captured above)
           git add repository.nigel1992/addons/addons.xml
           git add repository.nigel1992/addons/addons.xml.md5
           git commit -m "Auto-update repository files" || echo "No changes to commit"
