@@ -41,11 +41,16 @@ If you prefer to manually install individual addons:
 3. Install through Kodi's "Install from zip file" option
 
 ## 🔄 Updates
+Add-ons in this repository notify you when updates are available. To ensure you receive notifications:
 
-Addons in this repository automatically notify you when updates are available. To update:
-1. From the Kodi home screen, navigate to Add-ons
-2. When updates are available, you'll see a notification
-3. Select the addon and choose "Update"
+From the Kodi home screen, go to Settings (gear icon).
+Select System > Add-ons.
+Set Update Notifications to Enabled.
+Once enabled, you'll receive a notification when an update is available. To update:
+
+From the Kodi home screen, navigate to Add-ons.
+When updates are available, you'll see a notification.
+Select the add-on and choose Update.
 
 ## 🧰 Repository Structure
 
