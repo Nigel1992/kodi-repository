@@ -3,7 +3,7 @@ name: Update Repository
 on:
   push:
     paths:
-      - 'repository.mykodiaddons/addons/**'
+      - 'repository.nigel1992/addons/**'
   workflow_dispatch:
 
 jobs:
