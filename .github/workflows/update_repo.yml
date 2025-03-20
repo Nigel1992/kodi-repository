@@ -20,14 +20,14 @@ jobs:
           
       - name: Generate repository files
         run: |
-          cd repository.mykodiaddons
+          cd repository.nigel1992
           python generate_repo.py
           
       - name: Commit and push changes
         run: |
           git config --local user.email "action@github.com"
           git config --local user.name "GitHub Action"
-          git add repository.mykodiaddons/addons/addons.xml
-          git add repository.mykodiaddons/addons/addons.xml.md5
+          git add repository.nigel1992/addons/addons.xml
+          git add repository.nigel1992/addons/addons.xml.md5
           git commit -m "Auto-update repository files" || echo "No changes to commit"
           git push 
