@@ -3,7 +3,8 @@ name: Update Repository
 on:
   push:
     paths:
-      - 'repository.nigel1992/addons/**'
+      - 'repository.nigel1992/addons/*/*'
+      - '!repository.nigel1992/addons/*/[0-9]*'
   workflow_dispatch:
 
 jobs:
@@ -27,10 +28,11 @@ jobs:
         run: |
           git config --local user.email "action@github.com"
           git config --local user.name "GitHub Action"
-          # Add all changes in the addons directory (including zip files and version directories)
-          git add repository.nigel1992/addons/
-          # Ensure the main XML files are added (if they weren't captured above)
+          # Add only addon-specific changes, excluding version folders
+          git add repository.nigel1992/addons/*/*
+          git add --force repository.nigel1992/addons/*/resources/**
+          # Ensure the main XML and necessary addon files are added
           git add repository.nigel1992/addons/addons.xml
           git add repository.nigel1992/addons/addons.xml.md5
-          git commit -m "Auto-update repository files" || echo "No changes to commit"
-          git push 
+          git commit -m "Auto-update addon files" || echo "No changes to commit"
+          git push
