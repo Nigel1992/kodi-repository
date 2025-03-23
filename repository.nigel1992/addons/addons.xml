@@ -58,7 +58,7 @@
 		<requires>
 			
         
-			<import addon="xbmc.python" version="3.0.0"/>
+			<import addon="xbmc.python" version="3.0.1"/>
 			
         
 			<import addon="script.module.requests" version="2.22.0"/>
@@ -67,7 +67,7 @@
 		</requires>
 		
     
-		<extension point="xbmc.service" library="service.py" start="login"/>
+		<extension point="xbmc.service" library="service.py"/>
 		
     
 		<extension point="xbmc.python.script" library="addon.py"/>
@@ -134,9 +134,6 @@ v1.2.0 (2025-03-16)
 				
             
 				<fanart>resources/fanart.jpg</fanart>
-				
-            
-				<screenshot>resources/screenshots/backup-completed-email.png</screenshot>
 				
             
 				<screenshot>resources/screenshot-01.jpg</screenshot>
