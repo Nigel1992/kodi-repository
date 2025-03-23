@@ -67,13 +67,7 @@
 		</requires>
 		
     
-		<extension point="xbmc.service" library="service.py" start="login">
-			
-        
-			<provides>executable</provides>
-			
-    
-		</extension>
+		<extension point="xbmc.service" library="service.py" start="login"/>
 		
     
 		<extension point="xbmc.python.script" library="addon.py"/>
@@ -130,6 +124,9 @@ v1.2.0 (2025-03-16)
 - Added detailed backup status tracking</news>
 			
         
+			<disclaimer lang="en">This addon is not affiliated with LibreELEC</disclaimer>
+			
+        
 			<assets>
 				
             
@@ -137,6 +134,9 @@ v1.2.0 (2025-03-16)
 				
             
 				<fanart>resources/fanart.jpg</fanart>
+				
+            
+				<screenshot>resources/screenshots/backup-completed-email.png</screenshot>
 				
             
 				<screenshot>resources/screenshot-01.jpg</screenshot>
