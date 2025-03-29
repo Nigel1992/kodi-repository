@@ -52,7 +52,7 @@
 		
 
 	</addon>
-	<addon id="service.libreelec.backupper" name="LibreELEC Backupper" version="1.4.1" provider-name="Nigel">
+	<addon id="service.libreelec.backupper" name="LibreELEC Backupper" version="1.4.1.1" provider-name="Nigel">
 		
     
 		<requires>
