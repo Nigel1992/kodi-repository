@@ -52,7 +52,7 @@
 		
 
 	</addon>
-	<addon id="service.libreelec.backupper" name="LibreELEC Backupper" version="1.4.1.1" provider-name="Nigel">
+	<addon id="service.libreelec.backupper" name="LibreELEC Backupper" version="1.4.1.2" provider-name="Nigel">
 		
     
 		<requires>
@@ -97,7 +97,12 @@
 			<source>https://github.com/Nigel1992/service.libreelec.backupper</source>
 			
         
-			<news>v1.4.1 (2025-03-25)
+			<news>v1.4.1.2 (2025-12-30)
+- Fixed restore from backup failing due to read-only file system error
+- Added automatic mounting/unmounting of addons directory during restore
+- Improved path resolution for addons and repository files during restore
+
+v1.4.1 (2025-03-25)
 - Enhanced main menu UI with last backup and next scheduled backup information
 - Improved menu layout with visual separation between actions and information
 
