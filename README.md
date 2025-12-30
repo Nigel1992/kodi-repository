@@ -17,6 +17,12 @@ A modern, well-structured repository for Kodi addons featuring LibreELEC utiliti
 
 ### LibreELEC Backupper (v1.2.1.1)
 
+**Current Version:** 1.4.1.2
+
+Automatically backup and restore your LibreELEC system settings, configurations, and addons. Supports local and remote storage locations with smart backup rotation.
+
+**Latest Update:** v1.4.1.2 (2025-12-30)
+
 **Current Version:** 1.4.1.1
 
 Automatically backup and restore your LibreELEC system settings, configurations, and addons. Supports local and remote storage locations with smart backup rotation.
