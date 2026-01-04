@@ -23,6 +23,12 @@ Automatically backup and restore your LibreELEC system settings, configurations,
 
 **Latest Update:** v1.4.1.3 (2026-01-04) - FIX RELEASE
 
+**Current Version:** 1.4.1.3
+
+Automatically backup and restore your LibreELEC system settings, configurations, and addons. Supports local and remote storage locations with smart backup rotation.
+
+**Latest Update:** v1.4.1.3 (2026-01-04) - FIX RELEASE
+
 **Current Version:** 1.4.1.4
 
 Automatically backup and restore your LibreELEC system settings, configurations, and addons. Supports local and remote storage locations with smart backup rotation.
