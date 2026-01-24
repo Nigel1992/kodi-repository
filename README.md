@@ -101,7 +101,4 @@ For support, file an issue on GitHub or contact via the Kodi forums.
 
 ---
 
-## Topics
-
-kodi, repository, addons, libreelec, backup, streaming, iptv, python, media, automation, open-source, entertainment, Nigel1992
 
