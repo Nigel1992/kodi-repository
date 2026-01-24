@@ -12,10 +12,15 @@ Live TV • VOD • Catch-up • TV Series
 Optimized for **Kodi v21 (Omega)** & **Python 3.13**
 
 [![Latest Release](https://img.shields.io/github/v/release/Nigel1992/plugin.video.iptvxc?style=flat-square)](https://github.com/Nigel1992/plugin.video.iptvxc/releases/latest)
-[![Version](https://img.shields.io/badge/Version-3.3.3-brightgreen?style=flat-square)](https://github.com/Nigel1992/plugin.video.iptvxc/releases/tag/v3.3.3)
+[![Version](https://img.shields.io/badge/Version-3.3.3.1-brightgreen?style=flat-square)](https://github.com/Nigel1992/plugin.video.iptvxc/releases/tag/v3.3.3.1)
 [![Kodi](https://img.shields.io/badge/Kodi-21%20Omega-blue?style=flat-square)](https://kodi.tv)
 [![Python](https://img.shields.io/badge/Python-3.13-yellow?style=flat-square)](https://www.python.org/)
 [![Issues](https://img.shields.io/github/issues/Nigel1992/plugin.video.iptvxc?style=flat-square)](https://github.com/Nigel1992/plugin.video.iptvxc/issues)
+
+---
+
+**Official Kodi Repository for this addon:**
+👉 [Nigel1992/kodi-repository](https://github.com/Nigel1992/kodi-repository)
 
 </div>
 
@@ -85,6 +90,9 @@ Built for fast, reliable XC/XCUI playback on Kodi 21 (Omega) with modern parsing
 
 1. **Download the latest release**  
    👉 https://github.com/Nigel1992/plugin.video.iptvxc/releases
+
+2. **Or install from the official Kodi repository**  
+  👉 [Nigel1992/kodi-repository](https://github.com/Nigel1992/kodi-repository)
 
 2. **Install in Kodi**
    - `Settings` → `Add-ons` → `Install from zip file`
