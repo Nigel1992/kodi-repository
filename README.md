@@ -1,146 +1,77 @@
-[![ko-fi](https://ko-fi.com/img/githubbutton_sm.svg)](https://ko-fi.com/Nigel1992)
+# Nigel1992 Kodi Addons Repository
 
->  All donations go towards your chosen charity. You can pick any charity you'd like, and 5% is retained due to Ko-Fi fees. As a thank you, your name will be listed as a supporter/donor in this project. Feel free to email me at thedjskywalker@gmail.com for proof! :)
+[![GitHub Stars](https://img.shields.io/github/stars/Nigel1992/kodi-repository?style=for-the-badge)](https://github.com/Nigel1992/kodi-repository/stargazers)
+[![Latest Release](https://img.shields.io/github/v/release/Nigel1992/kodi-repository?style=for-the-badge)](https://github.com/Nigel1992/kodi-repository/releases/latest)
 
-# Nigel1992 Kodi Repository
+## About
 
-<div align="center">
+A modern, community-driven repository of high-quality Kodi addons, scripts, and utilities by Nigel1992. This repo features powerful tools for backup, IPTV streaming, and more—optimized for Kodi 21 (Omega) and Python 3.13. All code is open-source and maintained for reliability and ease of use.
 
-![Repository Banner](repository.nigel1992/addons/repository.nigel1992/fanart.jpg)
+- **GitHub:** https://github.com/Nigel1992/kodi-repository
+- **License:** GPL-2.0-or-later (see individual addons for details)
 
-[![Latest Release](https://img.shields.io/github/v/release/Nigel1992/kodi-repository?label=Latest%20Release&style=for-the-badge)](https://github.com/Nigel1992/kodi-repository/releases/latest)
-[![Last Updated](https://img.shields.io/github/last-commit/Nigel1992/kodi-repository?label=Last%20Updated&style=for-the-badge)](https://github.com/Nigel1992/kodi-repository/commits/master)
-[![License](https://img.shields.io/github/license/Nigel1992/kodi-repository?style=for-the-badge)](LICENSE)
-[![Stars](https://img.shields.io/github/stars/Nigel1992/kodi-repository?style=for-the-badge)](https://github.com/Nigel1992/kodi-repository/stargazers)
+---
 
-</div>
+## Featured Addons
 
-A modern, well-structured repository for Kodi addons featuring LibreELEC utilities and more.
+### 1. LibreELEC Config Backupper ([service.libreelec.backupper](repository.nigel1992/addons/service.libreelec.backupper/))
 
-## 🚀 Featured Addons
+A Kodi add-on for LibreELEC that allows you to backup and restore your system configuration, add-ons, and user data.
 
-### LibreELEC Backupper (v1.2.1.1)
+**Latest Version:** 1.4.1.5  
+**Key Features:**
+- Backup/restore system settings, add-ons, and user data
+- Local and remote storage (SMB, NFS, FTP, SFTP, WebDAV)
+- Backup rotation and retention policies
+- Scheduled and manual backups
+- User-friendly interface with progress tracking
 
-**Current Version:** 1.4.1.5
+**Recent Changes:**
+- Fixed NFS remote browsing and SMB backup creation
+- Improved backup/restore UI and error handling
 
-Automatically backup and restore your LibreELEC system settings, configurations, and addons. Supports local and remote storage locations with smart backup rotation.
+[Read full changelog](repository.nigel1992/addons/service.libreelec.backupper/1.4.1.5/changelog.txt)
 
-**Latest Update:** v1.4.1.5 (2026-01-05) - TEST RELEASE
+---
 
-**Current Version:** 1.4.1.5
+### 2. XCUI Streams ([plugin.video.iptvxc](repository.nigel1992/addons/plugin.video.iptvxc/))
 
-Automatically backup and restore your LibreELEC system settings, configurations, and addons. Supports local and remote storage locations with smart backup rotation.
+High-performance XC / XCUI IPTV playback for Kodi. Supports Live TV, VOD, Catch-up, and TV Series. Optimized for Kodi v21 (Omega).
 
-**Latest Update:** v1.4.1.5 (2026-01-05) - TEST RELEASE
+**Latest Version:** 3.3.3.1  
+**Key Features:**
+- Fast, reliable IPTV streaming
+- Account expiry checks and notifications
+- Trakt integration (coming soon)
+- Custom icons and assets
 
-**Current Version:** 1.4.1.5
+**Recent Changes:**
+- Updated icons and assets
+- Version bump and release automation
 
-Automatically backup and restore your LibreELEC system settings, configurations, and addons. Supports local and remote storage locations with smart backup rotation.
+[Read full changelog](repository.nigel1992/addons/plugin.video.iptvxc/3.3.3.1/CHANGELOG.md)
 
-**Latest Update:** v1.4.1.5 (2026-01-05) - TEST RELEASE
+---
 
-**Current Version:** 1.4.1.5
+## Repository Structure
 
-Automatically backup and restore your LibreELEC system settings, configurations, and addons. Supports local and remote storage locations with smart backup rotation.
+```
+repository.nigel1992/
+├── addons/
+│   ├── repository.nigel1992/      # Repository addon itself
+│   ├── service.libreelec.backupper/ # LibreELEC Backupper addon
+│   ├── plugin.video.iptvxc/       # XCUI Streams IPTV addon
+│   ├── addons.xml                 # Addon index
+│   └── addons.xml.md5             # Checksum for verification
+├── scripts/                       # Repository management scripts
+│   ├── generate_repo.py           # Generate repo index files
+│   └── create_repository_zip.py   # Create addon zip packages
+└── README.md
+```
 
-**Latest Update:** v1.4.1.5 (2026-01-05) - TEST RELEASE
+## Installation
 
-**Current Version:** 1.4.1.4
-
-Automatically backup and restore your LibreELEC system settings, configurations, and addons. Supports local and remote storage locations with smart backup rotation.
-
-**Latest Update:** v1.4.1.4 (2026-01-04) - FIX RELEASE
-
-**Current Version:** 1.4.1.3
-
-Automatically backup and restore your LibreELEC system settings, configurations, and addons. Supports local and remote storage locations with smart backup rotation.
-
-**Latest Update:** v1.4.1.3 (2026-01-04) - FIX RELEASE
-
-**Current Version:** 1.4.1.3
-
-Automatically backup and restore your LibreELEC system settings, configurations, and addons. Supports local and remote storage locations with smart backup rotation.
-
-**Latest Update:** v1.4.1.3 (2026-01-04) - FIX RELEASE
-
-**Current Version:** 1.4.1.4
-
-Automatically backup and restore your LibreELEC system settings, configurations, and addons. Supports local and remote storage locations with smart backup rotation.
-
-**Latest Update:** v1.4.1.4 (2026-01-04) - FIX RELEASE
-
-**Current Version:** 1.4.1.3
-
-Automatically backup and restore your LibreELEC system settings, configurations, and addons. Supports local and remote storage locations with smart backup rotation.
-
-**Latest Update:** v1.4.1.3 (2025-12-30) - TEST RELEASE
-
-**Current Version:** 1.4.1.2
-
-Automatically backup and restore your LibreELEC system settings, configurations, and addons. Supports local and remote storage locations with smart backup rotation.
-
-**Latest Update:** v1.4.1.2 (2025-12-30)
-
-**Current Version:** 1.4.1.1
-
-Automatically backup and restore your LibreELEC system settings, configurations, and addons. Supports local and remote storage locations with smart backup rotation.
-
-**Latest Update:** v1.4.1 (2025-03-25)
-
-**Current Version:** 1.4.1
-
-Automatically backup and restore your LibreELEC system settings, configurations, and addons. Supports local and remote storage locations with smart backup rotation.
-
-**Latest Update:** v1.4.1 (2025-03-25)
-
-**Current Version:** 1.4.1
-
-Automatically backup and restore your LibreELEC system settings, configurations, and addons. Supports local and remote storage locations with smart backup rotation.
-
-**Latest Update:** v1.4.1 (2025-03-25)
-
-**Current Version:** 1.4.1
-
-Automatically backup and restore your LibreELEC system settings, configurations, and addons. Supports local and remote storage locations with smart backup rotation.
-
-**Latest Update:** v1.4.1 (2025-03-25)
-
-**Current Version:** 1.4.1
-
-Automatically backup and restore your LibreELEC system settings, configurations, and addons. Supports local and remote storage locations with smart backup rotation.
-
-**Latest Update:** v1.4.1 (2025-03-25)
-
-**Current Version:** 1.4.0
-
-Automatically backup and restore your LibreELEC system settings, configurations, and addons. Supports local and remote storage locations with smart backup rotation.
-
-**Latest Update:** v1.4.0 (2025-03-25)
-
-**Current Version:** 1.4.0
-
-Automatically backup and restore your LibreELEC system settings, configurations, and addons. Supports local and remote storage locations with smart backup rotation.
-
-**Latest Update:** v1.4.0 (2025-03-25)
-
-**Current Version:** 1.4.0
-
-Automatically backup and restore your LibreELEC system settings, configurations, and addons. Supports local and remote storage locations with smart backup rotation.
-
-**Latest Update:** v1.4.0 (2025-03-25)
-
-![LibreELEC Backupper](repository.nigel1992/addons/service.libreelec.backupper/resources/icon.png)
-
-A comprehensive backup solution for LibreELEC with these powerful features:
-- Real-time progress tracking with accurate file size display
-- Support for multiple storage options (Local, SMB, NFS, FTP, SFTP, WebDAV)
-- Configurable compression levels for optimal backup size
-- Scheduled backups with reminder notifications
-- User-friendly interface with detailed status reporting
-
-## 📥 Installation
-
-### Quick Install (Recommended)
+### Quick Install
 1. Download the [repository zip file](https://github.com/Nigel1992/kodi-repository/releases/latest)
 2. In Kodi, go to Add-ons → Add-on browser (box icon) → Install from zip file
 3. Select the downloaded zip file
@@ -148,70 +79,29 @@ A comprehensive backup solution for LibreELEC with these powerful features:
 5. Go to Install from repository → Nigel1992 Repository → Select category → Choose addon → Install
 
 ### Manual Installation
-If you prefer to manually install individual addons:
 1. Browse to the desired addon in the repository
 2. Download the corresponding zip file
 3. Install through Kodi's "Install from zip file" option
 
-## 🔄 Updates
+## Updates
 Add-ons in this repository notify you when updates are available. To ensure you receive notifications:
+- Go to Kodi Settings > System > Add-ons
+- Set Update Notifications to Enabled
 
-From the Kodi home screen, go to Settings (gear icon).
-Select System > Add-ons.
-Set Update Notifications to Enabled.
-Once enabled, you'll receive a notification when an update is available. To update:
+## Contributing
 
-From the Kodi home screen, navigate to Add-ons.
-When updates are available, you'll see a notification.
-Select the add-on and choose Update.
-
-## 🧰 Repository Structure
-
-```
-repository.nigel1992/
-├── addons/
-│   ├── repository.nigel1992/      # Repository addon itself
-│   ├── service.libreelec.backupper/ # LibreELEC Backupper addon
-│   ├── addons.xml                 # Addon index
-│   └── addons.xml.md5             # Checksum for verification
-└── scripts/                     # Repository management scripts
-    ├── generate_repo.py         # Generate repo index files
-    └── create_repository_zip.py # Create addon zip packages
-```
-
-## 🛠️ For Developers
-
-This repository includes scripts for automating addon management:
-- Scripts to generate proper repository structure
-- GitHub Actions workflow for automatic updates
-- Supports both zipped and unzipped addon formats
-
-## 📝 License
-
-Individual addons are licensed according to their respective license files. Repository tools are available under GPL-2.0.
-
-## 🤝 Contributing
-
-Contributions are welcome! If you'd like to contribute:
+Contributions are welcome! To contribute:
 1. Fork the repository
 2. Create a feature branch
 3. Submit a pull request
 
-## 📞 Support
+## Support
 
-For support, please file an issue on the GitHub repository or contact through the Kodi forums.
+For support, file an issue on GitHub or contact via the Kodi forums.
 
-# About
+---
 
-Nigel1992 Kodi Repository is a modern, community-driven collection of high-quality Kodi addons, scripts, and utilities. Our mission is to make Kodi more powerful, user-friendly, and customizable for everyone. Whether you want to backup your LibreELEC system, explore new streaming options, or automate your Kodi setup, this repository has you covered.
+## Topics
 
-**Key Features:**
-- Curated, regularly updated addons
-- Focus on reliability and ease of use
-- Open-source and community supported
-- Detailed documentation and support
-
-# Tags
-
-kodi, repository, addons, libreelec, backup, streaming, python, media, automation, open-source, entertainment, Nigel1992
+kodi, repository, addons, libreelec, backup, streaming, iptv, python, media, automation, open-source, entertainment, Nigel1992
 
