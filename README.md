@@ -200,3 +200,18 @@ Contributions are welcome! If you'd like to contribute:
 ## 📞 Support
 
 For support, please file an issue on the GitHub repository or contact through the Kodi forums.
+
+# About
+
+Nigel1992 Kodi Repository is a modern, community-driven collection of high-quality Kodi addons, scripts, and utilities. Our mission is to make Kodi more powerful, user-friendly, and customizable for everyone. Whether you want to backup your LibreELEC system, explore new streaming options, or automate your Kodi setup, this repository has you covered.
+
+**Key Features:**
+- Curated, regularly updated addons
+- Focus on reliability and ease of use
+- Open-source and community supported
+- Detailed documentation and support
+
+# Tags
+
+kodi, repository, addons, libreelec, backup, streaming, python, media, automation, open-source, entertainment, Nigel1992
+
