@@ -1,5 +1,14 @@
 # Changelog
 #
+## 3.4.0 (2026-01-25)
+- Improved search experience:
+  - Search now queries Live TV, VOD (Movies), Series and Catch-up content instead of only Live channels
+  - Aggregates and displays results from all sources so no matches are missed
+  - Adds colored, visible prefixes indicating the section where each result was found (Live, Movie, VOD, Series, Catch-up)
+  - Playable items open directly and return to the search results after playback (no re-opening of the search dialog)
+- Quality: safer parsing and fallbacks added when endpoints return non-standard payloads
+- Minor: code refactor and performance adjustments for search aggregation
+
 ## 3.3.3.1 (2026-01-25)
 - Updated all main icons and add-on icon with user-supplied images
 - Repackaged add-on ZIP with new assets
