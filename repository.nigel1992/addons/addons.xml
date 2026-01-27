@@ -52,7 +52,7 @@
 		
 
 	</addon>
-	<addon id="plugin.video.iptvxc" name="[B][COLOR red]XCUI Streams[/B][/COLOR]" version="3.5.1" provider-name="Nigel1992">
+	<addon id="plugin.video.iptvxc" name="[B][COLOR red]XCUI Streams[/B][/COLOR]" version="3.5.2" provider-name="Nigel1992">
 		
   
 		<extension point="xbmc.python.pluginsource" library="default.py">
