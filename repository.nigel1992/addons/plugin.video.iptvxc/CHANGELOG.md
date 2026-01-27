@@ -1,5 +1,16 @@
 # Changelog
 #
+## 3.5.1 (2026-01-27)
+- Hotfix: Removed four 'coming soon' Extras menu options (Setup PVR Guide, Install PVR Guide, Refresh M3U, Clear Cache) as they are currently broken and need fixing first. Only Speed Test remains active in Extras.
+
+## 3.5.0 (2026-01-27)
+- Fixed and updated the Speed Test feature:
+  - Replaced with script.speedtester logic and UI for reliability and modern look
+  - Full Python 3 compatibility (threading, XML parsing, bytes/str handling)
+  - Added author credit for original script.speedtester
+  - Ensured no M3U/provider popups and direct launch from Extras menu
+- Fixed M3U popup to no longer appear unexpectedly
+
 ## 3.4.0 (2026-01-25)
 - Improved search experience:
   - Search now queries Live TV, VOD (Movies), Series and Catch-up content instead of only Live channels
