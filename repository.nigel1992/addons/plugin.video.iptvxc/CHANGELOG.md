@@ -1,7 +1,8 @@
 # Changelog
 #
 ## 3.5.1 (2026-01-27)
-- Hotfix: Removed four 'coming soon' Extras menu options (Setup PVR Guide, Install PVR Guide, Refresh M3U, Clear Cache) as they are currently broken and need fixing first. Only Speed Test remains active in Extras.
+- Extras menu placeholders (Setup PVR Guide, Install PVR Guide, Refresh M3U, Clear Cache) are now visible but disabled in the UI. Only Speed Test is active. Disabled options will show a message if selected.
+- Fixed: The version number in addon.xml now matches the release version.
 
 ## 3.5.0 (2026-01-27)
 - Fixed and updated the Speed Test feature:
