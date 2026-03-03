@@ -1,96 +1,53 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <addons>
-	<addon id="repository.nigel1992" name="Nigel1992 Repository" version="1.0.2" provider-name="Nigel1992">
+	<addon id="plugin.video.iptvxc" name="[B][COLOR red]XCUI Streams[/COLOR][/B]" version="3.6.0" provider-name="Nigel1992">
 		
     
-		<extension point="xbmc.addon.repository" name="Nigel1992 Repository">
+		<requires>
 			
         
-			<dir>
-				
-            
-				<info compressed="false">https://raw.githubusercontent.com/Nigel1992/kodi-repository/master/repository.nigel1992/addons/addons.xml</info>
-				
-            
-				<checksum>https://raw.githubusercontent.com/Nigel1992/kodi-repository/master/repository.nigel1992/addons/addons.xml.md5</checksum>
-				
-            
-				<datadir zip="true">https://raw.githubusercontent.com/Nigel1992/kodi-repository/master/repository.nigel1992/addons</datadir>
-				
-        
-			</dir>
+			<import addon="xbmc.python" version="3.0.0"/>
 			
     
-		</extension>
+		</requires>
 		
     
-		<extension point="xbmc.addon.metadata">
-			
-        
-			<summary>Repository for Nigel1992's Kodi addons</summary>
-			
-        
-			<description>This repository contains Nigel1992's collection of Kodi addons</description>
-			
-        
-			<platform>all</platform>
-			
-        
-			<assets>
-				
-            
-				<icon>icon.png</icon>
-				
-            
-				<fanart>fanart.jpg</fanart>
-				
-        
-			</assets>
-			
-    
-		</extension>
-		
-
-	</addon>
-	<addon id="plugin.video.iptvxc" name="[B][COLOR red]XCUI Streams[/B][/COLOR]" version="3.5.2" provider-name="Nigel1992">
-		
-  
 		<extension point="xbmc.python.pluginsource" library="default.py">
 			
-		
+        
 			<provides>video</provides>
 			
-  
+    
 		</extension>
 		
-  
+    
 		<extension point="xbmc.addon.metadata">
 			
-	
-			<summary lang="en">[COLOR red]An IPTV addon written to work with XC and XCUI for Kodi 21. Trakt integration is coming in a future release.[/COLOR]</summary>
+        
+			<summary lang="en">[COLOR red]An IPTV addon for Kodi 21.[/COLOR]</summary>
 			
-	
+        
+			<description lang="en">[COLOR red]This addon does not supply illegal content.[/COLOR]</description>
+			
+        
 			<language>en</language>
 			
-	
-			<description lang="en">[COLOR red]This addon does not supply nor provide any illegal content. Trakt integration is coming in a future release.[/COLOR]</description>
-			
-	
+        
 			<platform>all</platform>
 			
-	
+        
 			<assets>
 				
-		
+            
 				<icon>icon.png</icon>
 				
-		
+            
 				<fanart>fanart.jpg</fanart>
 				
-	
+        
 			</assets>
 			
-  
+    
 		</extension>
 		
 
@@ -181,6 +138,58 @@ v1.4.1.2 (2025-12-30)
 				
             
 				<screenshot>resources/screenshot-02.jpg</screenshot>
+				
+        
+			</assets>
+			
+    
+		</extension>
+		
+
+	</addon>
+	<addon id="repository.nigel1992" name="Nigel1992 Repository" version="1.0.2" provider-name="Nigel1992">
+		
+    
+		<extension point="xbmc.addon.repository" name="Nigel1992 Repository">
+			
+        
+			<dir>
+				
+            
+				<info compressed="false">https://raw.githubusercontent.com/Nigel1992/kodi-repository/master/repository.nigel1992/addons/addons.xml</info>
+				
+            
+				<checksum>https://raw.githubusercontent.com/Nigel1992/kodi-repository/master/repository.nigel1992/addons/addons.xml.md5</checksum>
+				
+            
+				<datadir zip="true">https://raw.githubusercontent.com/Nigel1992/kodi-repository/master/repository.nigel1992/addons</datadir>
+				
+        
+			</dir>
+			
+    
+		</extension>
+		
+    
+		<extension point="xbmc.addon.metadata">
+			
+        
+			<summary>Repository for Nigel1992's Kodi addons</summary>
+			
+        
+			<description>This repository contains Nigel1992's collection of Kodi addons</description>
+			
+        
+			<platform>all</platform>
+			
+        
+			<assets>
+				
+            
+				<icon>icon.png</icon>
+				
+            
+				<fanart>fanart.jpg</fanart>
 				
         
 			</assets>
