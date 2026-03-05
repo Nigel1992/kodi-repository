@@ -3,8 +3,7 @@ name: Update Repository
 on:
   push:
     paths:
-      - 'repository.nigel1992/addons/*/*'
-      - '!repository.nigel1992/addons/*/[0-9]*'
+      - 'repository.nigel1992/**'
   workflow_dispatch:
 
 jobs:
@@ -13,7 +12,9 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-        
+        with:
+          fetch-depth: 0
+
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
@@ -28,11 +29,9 @@ jobs:
         run: |
           git config --local user.email "action@github.com"
           git config --local user.name "GitHub Action"
-          # Add only addon-specific changes, excluding version folders
-          git add repository.nigel1992/addons/*/*
-          git add --force repository.nigel1992/addons/*/resources/**
-          # Ensure the main XML and necessary addon files are added
-          git add repository.nigel1992/addons/addons.xml
-          git add repository.nigel1992/addons/addons.xml.md5
-          git commit -m "Auto-update addon files" || echo "No changes to commit"
+          
+          # Force add everything in the repository folder to override .gitignore
+          git add --force repository.nigel1992/
+          
+          git commit -m "Auto-update addon files (forced)" || echo "No changes to commit"
           git push
