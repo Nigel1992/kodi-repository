@@ -1,37 +1,13 @@
-name: Update Repository
-
-on:
-  push:
-    paths:
-      - 'repository.nigel1992/**'
-  workflow_dispatch:
-
-jobs:
-  update-repo:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-
-      - name: Set up Python
-        uses: actions/setup-python@v4
-        with:
-          python-version: '3.9'
-          
-      - name: Generate repository files
-        run: |
-          cd repository.nigel1992
-          python generate_repo.py
-          
-      - name: Commit and push changes
+- name: Commit and push changes
         run: |
           git config --local user.email "action@github.com"
           git config --local user.name "GitHub Action"
           
-          # Force add everything in the repository folder to override .gitignore
-          git add --force repository.nigel1992/
+          # Force add the entire addons directory to include .zip and .xml files
+          git add --force repository.nigel1992/addons/
           
-          git commit -m "Auto-update addon files (forced)" || echo "No changes to commit"
+          # Stage any other changes in the repo folder
+          git add repository.nigel1992/
+          
+          git commit -m "Auto-update addon files (including zips)" || echo "No changes to commit"
           git push
