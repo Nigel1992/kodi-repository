@@ -3,11 +3,13 @@
           git config --local user.email "action@github.com"
           git config --local user.name "GitHub Action"
           
-          # Force add the entire addons directory to include .zip and .xml files
-          git add --force repository.nigel1992/addons/
+          # Force add the entire repository directory to override .gitignore
+          git add -f repository.nigel1992/
           
-          # Stage any other changes in the repo folder
-          git add repository.nigel1992/
-          
-          git commit -m "Auto-update addon files (including zips)" || echo "No changes to commit"
-          git push
+          # Commit only if there are changes to avoid workflow failure
+          if git diff --staged --quiet; then
+            echo "No changes to commit"
+          else
+            git commit -m "Auto-update addon files (forced)"
+            git push
+          fi
