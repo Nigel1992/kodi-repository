@@ -1,12 +1,41 @@
-- name: Commit and push changes
+name: Update Repository
+
+on:
+  push:
+    paths:
+      - 'repository.nigel1992/**'
+  workflow_dispatch: # This enables the manual button
+
+permissions:
+  contents: write # Essential for the 'git push' to work
+
+jobs:
+  update-repo:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.9'
+          
+      - name: Generate repository files
+        run: |
+          cd repository.nigel1992
+          python generate_repo.py
+          
+      - name: Commit and push changes
         run: |
           git config --local user.email "action@github.com"
           git config --local user.name "GitHub Action"
           
-          # Force add the entire repository directory to override .gitignore
+          # Force add ignored files like .zip
           git add -f repository.nigel1992/
           
-          # Commit only if there are changes to avoid workflow failure
           if git diff --staged --quiet; then
             echo "No changes to commit"
           else
