@@ -1,3 +1,9 @@
+
+# Version 3.8.2 (2026-03-05)
+
+### 🔄 Maintenance
+- Version bump to 3.8.2 for latest release
+
 # Version 3.8.1 (2026-03-05)
 
 ### 🐛 Bug Fixes
