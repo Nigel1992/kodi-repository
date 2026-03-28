@@ -1,5 +1,57 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <addons>
+	<addon id="repository.nigel1992" name="Nigel1992 Repository" version="1.0.2" provider-name="Nigel1992">
+		
+    
+		<extension point="xbmc.addon.repository" name="Nigel1992 Repository">
+			
+        
+			<dir>
+				
+            
+				<info compressed="false">https://raw.githubusercontent.com/Nigel1992/kodi-repository/master/repository.nigel1992/addons/addons.xml</info>
+				
+            
+				<checksum>https://raw.githubusercontent.com/Nigel1992/kodi-repository/master/repository.nigel1992/addons/addons.xml.md5</checksum>
+				
+            
+				<datadir zip="true">https://raw.githubusercontent.com/Nigel1992/kodi-repository/master/repository.nigel1992/addons</datadir>
+				
+        
+			</dir>
+			
+    
+		</extension>
+		
+    
+		<extension point="xbmc.addon.metadata">
+			
+        
+			<summary>Repository for Nigel1992's Kodi addons</summary>
+			
+        
+			<description>This repository contains Nigel1992's collection of Kodi addons</description>
+			
+        
+			<platform>all</platform>
+			
+        
+			<assets>
+				
+            
+				<icon>icon.png</icon>
+				
+            
+				<fanart>fanart.jpg</fanart>
+				
+        
+			</assets>
+			
+    
+		</extension>
+		
+
+	</addon>
 	<addon id="plugin.video.iptvxc" name="[B][COLOR red]XCUI Streams[/COLOR][/B]" version="3.8.3" provider-name="Nigel1992">
 		
     
@@ -138,58 +190,6 @@ v1.4.1.2 (2025-12-30)
 				
             
 				<screenshot>resources/screenshot-02.jpg</screenshot>
-				
-        
-			</assets>
-			
-    
-		</extension>
-		
-
-	</addon>
-	<addon id="repository.nigel1992" name="Nigel1992 Repository" version="1.0.2" provider-name="Nigel1992">
-		
-    
-		<extension point="xbmc.addon.repository" name="Nigel1992 Repository">
-			
-        
-			<dir>
-				
-            
-				<info compressed="false">https://raw.githubusercontent.com/Nigel1992/kodi-repository/master/repository.nigel1992/addons/addons.xml</info>
-				
-            
-				<checksum>https://raw.githubusercontent.com/Nigel1992/kodi-repository/master/repository.nigel1992/addons/addons.xml.md5</checksum>
-				
-            
-				<datadir zip="true">https://raw.githubusercontent.com/Nigel1992/kodi-repository/master/repository.nigel1992/addons</datadir>
-				
-        
-			</dir>
-			
-    
-		</extension>
-		
-    
-		<extension point="xbmc.addon.metadata">
-			
-        
-			<summary>Repository for Nigel1992's Kodi addons</summary>
-			
-        
-			<description>This repository contains Nigel1992's collection of Kodi addons</description>
-			
-        
-			<platform>all</platform>
-			
-        
-			<assets>
-				
-            
-				<icon>icon.png</icon>
-				
-            
-				<fanart>fanart.jpg</fanart>
 				
         
 			</assets>
