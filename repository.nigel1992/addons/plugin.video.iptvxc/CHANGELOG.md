@@ -1,9 +1,33 @@
+# Version 3.8.5 (2026-03-31)
+
+### ✨ Added / Improvements
+- Favorites: Top-level Favorites now present as three category entries (Live TV, Movies/VOD, Series) showing counts — select a category to view its favorited items.
+- Favorites: Favorites are now classified and stored with a `category` attribute (live / vod / series) to improve grouping and maintain correct ordering.
+- Playback: Added per-category subtitle toggles in Settings → Playback (`subtitles_live`, `subtitles_vod`, `subtitles_series`) and the addon now enforces subtitle visibility per-category when playback starts.
+- Search: Improved search scope selection (choose Live / Movies/VOD / Series / All) and aggregated results across sources.
+
+### 🐛 Bug Fixes
+- Fixed a minor EPG updater typo and added defensive checks around playback start to avoid subtitle/EPG races.
+- Various small fixes and formatting/consistency improvements.
+
+# Version 3.8.4 (2026-03-28)
+
+### ✨ Added / Improvements
+- Mapped `resources/media/icon_*.png` files to home menu items so the supplied icons are used for Favorites, Recently Watched, Account Info, Live TV, Movies VOD, Series, TV Guide, Catchup, Search, Settings, and Extras.
+- Added `icon_LAST_PLAYED.png` and set it as the fallback for the Last Played home entry to ensure a reliable local icon.
+- Set Extras to use a local `icon_EXTRAS.png` fallback to avoid blocked or unreachable remote assets.
+- Updated `README.md` and `CHANGELOG.md` to document these changes.
+
+### 🐛 Bug Fixes
+- Fixed `IndentationError: unexpected indent` in `default.py` by normalizing ART PATHS and removing an unreachable nested try/except in `livecategory()`.
+- Ensured the Last Played home item always uses the local icon to avoid UI issues caused by unreachable icon hosts.
+- Packaging: created clean release ZIP and published release `v3.8.4` (excludes `.venv`, `__pycache__`, `.git`, and `.pyc` files).
 
 # Version 3.8.3 (2026-03-18)
 
 ### 🐛 Bug Fixes
-- Fixed accountinfo crash when the panel API returns empty or invalid JSON. Added robust parsing, defensive checks, and string coercion for numeric fields to prevent TypeError exceptions.
-- Packaging: ensure release ZIP contains a top-level `plugin.video.iptvxc` folder and excludes any local `.venv` directory.
+ - Fixed accountinfo crash when the panel API returns empty or invalid JSON. Added robust parsing, defensive checks, and string coercion for numeric fields to prevent TypeError exceptions.
+ - Packaging: ensure release ZIP contains a top-level `plugin.video.iptvxc` folder and excludes any local `.venv` directory.
 
 # Version 3.8.2 (2026-03-05)
 

@@ -82,23 +82,29 @@ advanced_settings = os.path.join(PLUGIN,'resources', 'advanced_settings')
 MEDIA			  = os.path.join(ADDONS,  PLUGIN , 'resources', 'media')
 KODIV			  = float(xbmc.getInfoLabel("System.BuildVersion")[:4])
 M3U_PATH		  = os.path.join(ADDONDATA,  'm3u.m3u')
+
 ##########################=ART PATHS=#######################################
-icon			  = os.path.join(PLUGIN,  'icon.png')
-fanart			  = os.path.join(PLUGIN,  'fanart.jpg')
-background		  = os.path.join(MEDIA,	 'background.jpg')
-live			  = os.path.join(MEDIA,	 'live.jpg')
-catch			  = os.path.join(MEDIA,	 'cu.jpg')
-Moviesod		  = os.path.join(MEDIA,	 'movie.jpg')
-Tvseries		  = os.path.join(MEDIA,	 'tv.jpg')
-iconextras		  = os.path.join(MEDIA,	 'iconextras.png')
-iconsettings	  = os.path.join(MEDIA,	 'iconsettings.png')
-iconlive		  = os.path.join(MEDIA,	 'iconlive.png')
-iconcatchup		  = os.path.join(MEDIA,	 'iconcatchup.png')
-iconMoviesod	  = os.path.join(MEDIA,	 'iconmovies.png')
-iconTvseries	  = os.path.join(MEDIA,	 'icontvseries.png')
-iconsearch		  = os.path.join(MEDIA,	 'iconsearch.png')
-iconaccount		  = os.path.join(MEDIA,	 'iconaccount.png')
-icontvguide		  = os.path.join(MEDIA,	 'iconguide.png')
+icon = os.path.join(PLUGIN, 'icon.png')
+# fallback for Extras if no specific icon is provided
+iconextras = os.path.join(MEDIA, 'icon_EXTRAS.png')
+fanart = os.path.join(PLUGIN, 'fanart.jpg')
+background = os.path.join(MEDIA, 'background.jpg')
+live = os.path.join(MEDIA, 'live.jpg')
+catch = os.path.join(MEDIA, 'cu.jpg')
+Moviesod = os.path.join(MEDIA, 'movie.jpg')
+Tvseries = os.path.join(MEDIA, 'tv.jpg')
+# new menu icons placed in resources/media (files starting with icon_)
+iconfavorites = os.path.join(MEDIA, 'icon_FAVORITES.png')
+iconrecent = os.path.join(MEDIA, 'icon_RECENTLY_WATCHED.png')
+icon_lastplayed = os.path.join(MEDIA, 'icon_LAST_PLAYED.png')
+iconaccount = os.path.join(MEDIA, 'icon_ACCOUNT_INFO.png')
+iconlive = os.path.join(MEDIA, 'icon_LIVE_TV.png')
+iconMoviesod = os.path.join(MEDIA, 'icon_MOVIES_VOD.png')
+iconTvseries = os.path.join(MEDIA, 'icon_SERIES.png')
+icontvguide = os.path.join(MEDIA, 'icon_TV_GUIDE.png')
+iconcatchup = os.path.join(MEDIA, 'icon_CATCHUP_TV.png')
+iconsearch = os.path.join(MEDIA, 'icon_SEARCH.png')
+iconsettings = os.path.join(MEDIA, 'icon_SETTINGS.png')
 
 #########################=XC VARIABLES=#####################################
 dns				  = control.setting('DNS')
@@ -136,13 +142,14 @@ def home():
 				ago = '%dh ago' % (delta // 3600)
 			else:
 				ago = '%dd ago' % (delta // 86400)
-		channel_name = last.get('name', 'Last Channel')
-		label = '[B][COLOR lime]\u25b6 Last Played: %s[/COLOR][/B]' % channel_name
-		if ago:
-			label = '[B][COLOR lime]\u25b6 Last Played (%s): %s[/COLOR][/B]' % (ago, channel_name)
-		tools.addDir(label, last['url'], 35, last.get('iconimage', icon), background, '')
-	tools.addDir('Favorites','url',30,icon,background,'')
-	tools.addDir('Recently Watched','url',32,icon,background,'')
+			channel_name = last.get('name', 'Last Channel')
+			label = '[B][COLOR lime]\u25b6 Last Played: %s[/COLOR][/B]' % channel_name
+			if ago:
+				label = '[B][COLOR lime]\u25b6 Last Played (%s): %s[/COLOR][/B]' % (ago, channel_name)
+			# Always use the provided local icon for Last Played so it displays
+			tools.addDir(label, last['url'], 35, icon_lastplayed, background, '')
+	tools.addDir('Favorites','url',30,iconfavorites,background,'')
+	tools.addDir('Recently Watched','url',32,iconrecent,background,'')
 	tools.addDir('Account Information','url',6,iconaccount,background,'')
 	tools.addDir('Live TV','live',1,iconlive,background,'')
 	tools.addDir('Movies/VOD','vod',3,iconMoviesod,background,'')
@@ -163,10 +170,6 @@ def livecategory():
 		root = ET.fromstring(data)
 	except Exception:
 		return
-		try:
-		    xbmc.log(f'{ADDON_ID}: Parsed params -> url={url} name={name} mode={mode} icon={iconimage} description={description} tmdb_id={tmdb_id}', LOG_NOTICE)
-		except Exception:
-		    pass
 
 	for ch in root.findall('.//channel'):
 		t = ch.findtext('title', default='')
@@ -565,6 +568,58 @@ def _start_playback_watchdog():
 						 name='IPTVXC-PlayWatchdog', daemon=True)
 	t.start()
 
+def apply_subtitles_for_playback(player_obj, url_arg, name_arg='', desc_arg=''):
+	"""
+	Spawn a short-lived thread that waits for playback to start and then
+	sets subtitle visibility according to addon settings per content type.
+	"""
+	try:
+		import threading
+	except Exception:
+		threading = None
+
+	def _worker():
+		startt = time.time()
+		while time.time() - startt < 30:
+			try:
+				if player_obj.isPlaying():
+					try:
+						cat = tools.classify_favorite(mode, url_arg, desc_arg or '', name_arg or '')
+					except Exception:
+						cat = 'live'
+					try:
+						if cat == 'series':
+							enabled = ADDON.getSetting('subtitles_series') == 'true'
+						elif cat == 'vod':
+							enabled = ADDON.getSetting('subtitles_vod') == 'true'
+						else:
+							enabled = ADDON.getSetting('subtitles_live') == 'true'
+					except Exception:
+						enabled = False
+					try:
+						player_obj.showSubtitles(bool(enabled))
+					except Exception as e:
+						try:
+							xbmc.log(f'{ADDON_ID}: apply_subtitles failed: {e}', LOG_NOTICE)
+						except Exception:
+							pass
+					break
+			except Exception:
+				pass
+			xbmc.sleep(500)
+
+	try:
+		if threading:
+			t = threading.Thread(target=_worker, daemon=True)
+			t.start()
+		else:
+			_worker()
+	except Exception:
+		try:
+			_worker()
+		except Exception:
+			pass
+
 def stream_video(url):
 	url = buildcleanurl(url)
 	# Log to history and save as last played
@@ -599,8 +654,14 @@ def stream_video(url):
 	# repeatedly close dialogs even if the addon process is terminated
 	# by Kodi shortly after resolving the URL.
 	_start_playback_watchdog()
+	# call the EPG updater
 	epg.start_epg_updater(player_api, url, name or '')
 	player = xbmc.Player()
+	# Ensure subtitles follow addon settings once playback actually starts
+	try:
+		apply_subtitles_for_playback(player, url, name or '', description or '')
+	except Exception:
+		pass
 	# Wait for playback to actually start (up to 10 s), then exit as soon
 	# as it stops.  This prevents the invoker staying alive for the full
 	# 30-second guard window after the user presses X to stop.
@@ -956,11 +1017,48 @@ def extras():
 
 def favorites_list():
 	favs = tools.load_favorites()
-	if not favs:
-		tools.addDir('[COLOR grey]No favorites yet. Long-press on any item to add.[/COLOR]','url',-1,icon,background,'')
-		return
+
+	live_favs = []
+	vod_favs = []
+	series_favs = []
+
 	for fav in favs:
-		tools.addDir(fav.get('name',''), fav.get('url',''), int(fav.get('mode', 4)), fav.get('iconimage', icon), fav.get('fanart', background), fav.get('description',''))
+		try:
+			cat = fav.get('category') or tools.classify_favorite(fav.get('mode'), fav.get('url'), fav.get('description',''), fav.get('name',''))
+		except Exception:
+			cat = tools.classify_favorite(fav.get('mode'), fav.get('url'), fav.get('description',''), fav.get('name',''))
+		if cat == 'series':
+			series_favs.append(fav)
+		elif cat == 'vod' or cat == 'movie':
+			vod_favs.append(fav)
+		else:
+			live_favs.append(fav)
+
+	# If a specific category was requested (url set to 'live'/'vod'/'series'), show items for that category
+	current = (url or '').lower()
+	if current in ('live', 'vod', 'series'):
+		if current == 'live':
+			items = live_favs
+			icon_for_items = iconlive
+		elif current == 'vod':
+			items = vod_favs
+			icon_for_items = iconMoviesod
+		else:
+			items = series_favs
+			icon_for_items = iconTvseries
+
+		if not items:
+			tools.addDir('[COLOR grey]No favorites in this category. Long-press to add.[/COLOR]','url',-1,icon_for_items,background,'')
+			return
+
+		for fav in items:
+			tools.addDir(fav.get('name',''), fav.get('url',''), int(fav.get('mode', 4)), fav.get('iconimage', icon), fav.get('fanart', background), fav.get('description',''))
+		return
+
+	# Top-level Favorites menu: show categories with counts. Click a category to view its favorites.
+	tools.addDir('Live TV (%d)' % len(live_favs), 'live', 30, iconlive, background, '')
+	tools.addDir('Movies/VOD (%d)' % len(vod_favs), 'vod', 30, iconMoviesod, background, '')
+	tools.addDir('Series (%d)' % len(series_favs), 'series', 30, iconTvseries, background, '')
 
 def toggle_favorite():
 	fav_mode = params.get('fav_mode', '4')
@@ -1261,7 +1359,12 @@ elif mode==37:
 		liz.setArt({'icon': ch_icon or icon, 'thumb': ch_icon or icon})
 		liz.setInfo(type='Video', infoLabels={'Title': display_title, 'Plot': now_desc, 'TVShowTitle': ch_name or ''})
 		liz.setContentLookup(False)
-		xbmc.Player().play(stream_url, liz)
+		player = xbmc.Player()
+		player.play(stream_url, liz)
+		try:
+			apply_subtitles_for_playback(player, stream_url, ch_name or '', now_desc)
+		except Exception:
+			pass
 		epg.start_epg_updater(player_api, stream_url, ch_name or '')
 		xbmc.sleep(200)
 		xbmc.executebuiltin('Dialog.Close(busydialog)')
@@ -1285,7 +1388,12 @@ elif mode==35:
 	liz.setArt({'icon': icon, 'thumb': icon})
 	liz.setInfo(type='Video', infoLabels={'Title': display_title, 'Plot': now_desc, 'TVShowTitle': name or ''})
 	liz.setContentLookup(False)
-	xbmc.Player().play(play_url, liz)
+	player = xbmc.Player()
+	player.play(play_url, liz)
+	try:
+		apply_subtitles_for_playback(player, play_url, name or '', now_desc)
+	except Exception:
+		pass
 	epg.start_epg_updater(player_api, play_url, name or '')
 	xbmc.sleep(200)
 	xbmc.executebuiltin('Dialog.Close(busydialog)')
