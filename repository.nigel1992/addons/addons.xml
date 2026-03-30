@@ -52,7 +52,7 @@
 		
 
 	</addon>
-	<addon id="plugin.video.iptvxc" name="[B][COLOR red]XCUI Streams[/COLOR][/B]" version="3.8.3" provider-name="Nigel1992">
+	<addon id="plugin.video.iptvxc" name="[B][COLOR red]XCUI Streams[/COLOR][/B]" version="3.8.5" provider-name="Nigel1992">
 		
     
 		<requires>
