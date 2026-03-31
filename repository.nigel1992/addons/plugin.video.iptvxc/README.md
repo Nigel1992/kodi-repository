@@ -128,11 +128,16 @@ Built for fast, reliable XC/XCUI playback on Kodi 21 (Omega) with modern parsing
 
   ---
 
-  ## Version 3.8.5 (2026-03-31)
+  ## Version 3.8.6 (2026-04-01)
+  - Search: added scoped search popup for Live TV & Catchup / Movies/VOD / Series / All sections.
+  - Search: added `net_timeout`, `net_retries`, `net_backoff` settings with explanation in Settings > Network.
+  - Search: added retry/backoff and fallback to cache for panel/vod/series endpoints on transient failures.
+  - Search: added deterministic dedupe+sort and state persistence for query + scope (restore on back navigation).
+
+## Version 3.8.5 (2026-03-31)
   - Favorites: top-level Favorites now show category entries only (Live TV / Movies/VOD / Series) with counts — click a category to view that category's favorited items.
   - Favorites: added automatic classification and a stored `category` for favorites (live / vod / series) so items are grouped correctly when listed.
   - Playback: added per-category subtitle toggles in Settings → Playback (`subtitles_live`, `subtitles_vod`, `subtitles_series`) and enforced subtitle visibility per-category at playback start.
-  - Search: improved search scope (choose Live / Movies/VOD / Series / All) and aggregated results from multiple sources.
   - Bug fixes: small playback and EPG fixes (including a typo fix in the EPG updater call) and a number of defensive checks.
 
   ## Version 3.8.4 (2026-03-28)
@@ -201,7 +206,19 @@ Please avoid sharing provider credentials publicly.
 Include Kodi version, platform, and logs when reporting bugs.
 
 ---
+## 📋 Project Board & Roadmap
 
+We use GitHub Projects to track issues, feature requests, and the project roadmap. View the board here: https://github.com/Nigel1992/plugin.video.iptvxc/projects
+
+The board reflects current priorities and status (for example: Backlog, In Progress, Review, Done). To help us triage and plan work:
+
+- **Report bugs:** Open an issue with reproduction steps, Kodi version, platform, and logs; add the `bug` label.
+- **Request features:** Open an issue with a clear description and use the `enhancement` label, or create a project card describing the request.
+- **Contribute code:** Submit a pull request referencing the related issue or project card; maintainers will triage and link it on the Projects board.
+
+The Projects board is the single source of truth for planned work and releases — check it for current priorities and planned milestones.
+
+---
 ## 🙏 Credits
 
 - Original work by **Fire TV Guru**

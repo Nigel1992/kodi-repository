@@ -1,10 +1,22 @@
+# Version 3.8.6 (2026-04-01)
+
+### ✨ Added / Improvements
+- Added section-scoped search choice to Search mode (Live TV & Catchup / Movies/VOD / Series / All sections).
+- Added network behavior settings: `net_timeout`, `net_retries`, `net_backoff` in settings.
+- Added resilience: search uses `OPEN_URL()` with retry/backoff and caching fallback (panel/vod/series endpoints).
+- Added persistent search state and last-result cache to speed repeated searches.
+
+### 🐛 Bug Fixes
+- Fixed inconsistent search order: enforced deterministic dedupe+sort (live/movie/vod/series/catchup) in `search()`.
+- Fixed stale query text and scope restore for back navigation by storing search state in JSON.
+- Improved overall stability for transient network errors during search.
+
 # Version 3.8.5 (2026-03-31)
 
 ### ✨ Added / Improvements
 - Favorites: Top-level Favorites now present as three category entries (Live TV, Movies/VOD, Series) showing counts — select a category to view its favorited items.
 - Favorites: Favorites are now classified and stored with a `category` attribute (live / vod / series) to improve grouping and maintain correct ordering.
 - Playback: Added per-category subtitle toggles in Settings → Playback (`subtitles_live`, `subtitles_vod`, `subtitles_series`) and the addon now enforces subtitle visibility per-category when playback starts.
-- Search: Improved search scope selection (choose Live / Movies/VOD / Series / All) and aggregated results across sources.
 
 ### 🐛 Bug Fixes
 - Fixed a minor EPG updater typo and added defensive checks around playback start to avoid subtitle/EPG races.
