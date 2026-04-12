@@ -18,6 +18,7 @@ import ftplib
 import socket
 import urllib.parse
 import requests
+import textwrap
 from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
 import xbmcgui
@@ -36,6 +37,8 @@ class BackupManager:
     
     def __init__(self, addon=None):
         self.addon = addon or xbmcaddon.Addon()
+        self.verbose_logging = False
+        self._refresh_logging_flag()
         self.update_backup_location()
         self._temp_files = set()  # Track temporary files
         self.remote_connection = None
@@ -45,58 +48,108 @@ class BackupManager:
         self.progress_dialog = None  # Initialize progress dialog
         self.current_notification = None  # Track current notification
         self.email_notifier = EmailNotifier()
+        self.last_operation_summary = None  # Holds last backup/restore summary for UI display
+
+    def _refresh_logging_flag(self):
+        """Refresh verbose logging flag from settings."""
+        try:
+            self.verbose_logging = self.addon.getSettingBool('enable_verbose_logging')
+        except Exception:
+            self.verbose_logging = False
+
+    def _log(self, message, level=xbmc.LOGINFO):
+        """Centralized logger that elevates debug to info when verbose is enabled."""
+        try:
+            safe_message = self.sanitize_string_encoding(str(message))
+        except Exception:
+            try:
+                safe_message = str(message).encode('utf-8', errors='backslashreplace').decode('ascii', errors='ignore')
+            except Exception:
+                safe_message = "BackupManager: <unprintable log message>"
+
+        target_level = xbmc.LOGINFO if self.verbose_logging and level == xbmc.LOGDEBUG else level
+        try:
+            xbmc.log(safe_message, target_level)
+        except Exception:
+            # Avoid recursive logging failures on malformed strings.
+            try:
+                xbmc.log("BackupManager: log message encoding failure", xbmc.LOGWARNING)
+            except Exception:
+                pass
+
+    def log_verbose(self, context, **kwargs):
+        """Emit detailed debug logging with structured context."""
+        details = ", ".join([f"{k}={repr(v)}" for k, v in kwargs.items()]) if kwargs else ""
+        self._log(f"BackupManager[{context}]: {details}", xbmc.LOGDEBUG)
     
     def update_backup_location(self):
         """Update backup location from settings"""
-        xbmc.log("BackupManager: Updating backup location settings", xbmc.LOGINFO)
+        self._refresh_logging_flag()
+        self._log("BackupManager: Updating backup location settings", xbmc.LOGINFO)
 
         # Get backup location type from settings
         self.location_type = int(self.addon.getSetting('backup_location_type') or "0")
-        xbmc.log(f"BackupManager: Location type = {self.location_type} (0=Local, 1=Remote)", xbmc.LOGINFO)
+        self._log(f"BackupManager: Location type = {self.location_type} (0=Local, 1=Remote)", xbmc.LOGINFO)
 
         # Define paths for various Kodi directories
         self.kodi_home = xbmcvfs.translatePath('special://home')
         self.kodi_userdata = xbmcvfs.translatePath('special://userdata')
-        xbmc.log(f"BackupManager: Kodi paths - home: {self.kodi_home}, userdata: {self.kodi_userdata}", xbmc.LOGDEBUG)
+        self._log(f"BackupManager: Kodi paths - home: {self.kodi_home}, userdata: {self.kodi_userdata}", xbmc.LOGDEBUG)
 
         # Initialize backup_dir
         self.backup_dir = None
+        # Reset remote password to a safe default each time we reload settings
+        self.remote_password = ""
 
         # Handle local backup location
         if self.location_type == 0:  # Local
             self.backup_dir = self.addon.getSetting('backup_location')
-            xbmc.log(f"BackupManager: Local backup location setting: {self.backup_dir}", xbmc.LOGINFO)
+            self._log(f"BackupManager: Local backup location setting: {self.backup_dir}", xbmc.LOGINFO)
 
             if not self.backup_dir:
                 self.backup_dir = "/storage/backup"  # Default location
-                xbmc.log("BackupManager: Using default local backup location: /storage/backup", xbmc.LOGINFO)
+                self._log("BackupManager: Using default local backup location: /storage/backup", xbmc.LOGINFO)
 
             # Validate that local path doesn't contain network protocols or remote path formats
             if self.backup_dir and (self.backup_dir.startswith(('nfs:', 'smb:', 'ftp:', 'sftp:', 'http:', 'https:')) or '://' in self.backup_dir or ':' in self.backup_dir):
-                xbmc.log(f"BackupManager: Invalid local path detected (contains network protocol or remote path format): {self.backup_dir}", xbmc.LOGWARNING)
+                self._log(f"BackupManager: Invalid local path detected (contains network protocol or remote path format): {self.backup_dir}", xbmc.LOGWARNING)
                 # Reset to default if invalid
                 self.backup_dir = "/storage/backup"
                 self.addon.setSetting('backup_location', self.backup_dir)
-                xbmc.log("BackupManager: Reset backup location to default: /storage/backup", xbmc.LOGINFO)
+                self._log("BackupManager: Reset backup location to default: /storage/backup", xbmc.LOGINFO)
             else:
-                xbmc.log(f"BackupManager: Local backup directory validated: {self.backup_dir}", xbmc.LOGINFO)
+                self._log(f"BackupManager: Local backup directory validated: {self.backup_dir}", xbmc.LOGINFO)
         else:  # Remote
-            xbmc.log("BackupManager: Configuring remote backup settings", xbmc.LOGINFO)
+            self._log("BackupManager: Configuring remote backup settings", xbmc.LOGINFO)
 
             # Get remote settings
             self.remote_type = int(self.addon.getSetting('remote_location_type') or "0")
             self.remote_path = self.addon.getSetting('remote_path')
             self.remote_username = self.addon.getSetting('remote_username')
+            # Don't log actual password; just note whether one is set
+            self.remote_password = self.addon.getSetting('remote_password')
             # Don't log password for security
             self.remote_port = int(self.addon.getSetting('remote_port') or "0")
 
             remote_type_names = ["SMB", "NFS", "FTP", "SFTP", "WebDAV"]
             remote_type_name = remote_type_names[self.remote_type] if self.remote_type < len(remote_type_names) else f"Unknown({self.remote_type})"
 
-            xbmc.log(f"BackupManager: Remote type = {self.remote_type} ({remote_type_name})", xbmc.LOGINFO)
-            xbmc.log(f"BackupManager: Remote path = {self.remote_path}", xbmc.LOGINFO)
-            xbmc.log(f"BackupManager: Remote username = {self.remote_username}", xbmc.LOGINFO)
-            xbmc.log(f"BackupManager: Remote port = {self.remote_port}", xbmc.LOGINFO)
+            self._log(f"BackupManager: Remote type = {self.remote_type} ({remote_type_name})", xbmc.LOGINFO)
+            self._log(f"BackupManager: Remote path = {self.remote_path}", xbmc.LOGINFO)
+            self._log(f"BackupManager: Remote username = {self.remote_username}", xbmc.LOGINFO)
+            self._log(f"BackupManager: Remote password set: {'Yes' if self.remote_password else 'No'}", xbmc.LOGDEBUG)
+            self._log(f"BackupManager: Remote port = {self.remote_port}", xbmc.LOGINFO)
+
+            # Emit consolidated verbose state for easier troubleshooting
+            self.log_verbose(
+                "update_backup_location",
+                location_type=self.location_type,
+                remote_type=remote_type_name,
+                remote_path=self.remote_path,
+                remote_username=self.remote_username,
+                remote_password_set=bool(self.remote_password),
+                remote_port=self.remote_port,
+            )
 
             # Set default ports if not specified
             if self.remote_port == 0:
@@ -110,28 +163,28 @@ class BackupManager:
                     self.remote_port = 22
                 elif self.remote_type == 4:  # WebDAV
                     self.remote_port = 80
-                xbmc.log(f"BackupManager: Set default port for {remote_type_name}: {self.remote_port}", xbmc.LOGINFO)
+                self._log(f"BackupManager: Set default port for {remote_type_name}: {self.remote_port}", xbmc.LOGINFO)
 
             # Create a temporary local directory for staging remote files
             self.backup_dir = os.path.join(xbmcvfs.translatePath('special://temp'), 'libreelec_backupper')
-            xbmc.log(f"BackupManager: Remote staging directory: {self.backup_dir}", xbmc.LOGINFO)
+            self._log(f"BackupManager: Remote staging directory: {self.backup_dir}", xbmc.LOGINFO)
 
         # Ensure backup directory exists (only for remote backups where we create temp dirs)
         if self.location_type != 0:  # Remote
             if self.backup_dir and not os.path.exists(self.backup_dir):
                 try:
                     os.makedirs(self.backup_dir)
-                    xbmc.log(f"BackupManager: Created staging directory: {self.backup_dir}", xbmc.LOGINFO)
+                    self._log(f"BackupManager: Created staging directory: {self.backup_dir}", xbmc.LOGINFO)
                 except Exception as e:
-                    xbmc.log(f"BackupManager: Error creating backup directory: {str(e)}", xbmc.LOGERROR)
+                    self._log(f"BackupManager: Error creating backup directory: {str(e)}", xbmc.LOGERROR)
                     # Fall back to addon profile if custom location can't be created
                     self.backup_dir = xbmcvfs.translatePath(self.addon.getAddonInfo('profile'))
-                    xbmc.log(f"BackupManager: Falling back to addon profile directory: {self.backup_dir}", xbmc.LOGWARNING)
+                    self._log(f"BackupManager: Falling back to addon profile directory: {self.backup_dir}", xbmc.LOGWARNING)
                     if not os.path.exists(self.backup_dir):
                         os.makedirs(self.backup_dir)
-                        xbmc.log("BackupManager: Created fallback directory", xbmc.LOGINFO)
+                        self._log("BackupManager: Created fallback directory", xbmc.LOGINFO)
 
-        xbmc.log(f"BackupManager: Final backup directory: {self.backup_dir}", xbmc.LOGINFO)
+        self._log(f"BackupManager: Final backup directory: {self.backup_dir}", xbmc.LOGINFO)
     
     def _create_webdav_session(self):
         """Create a WebDAV session with retry logic and connection pooling"""
@@ -168,6 +221,15 @@ class BackupManager:
             return True
         
         try:
+            self._log("BackupManager: Starting remote connection", xbmc.LOGINFO)
+            self.log_verbose(
+                "connect_remote:start",
+                remote_type=self.remote_type,
+                remote_path=self.remote_path,
+                remote_username=self.remote_username,
+                remote_password_set=bool(self.remote_password),
+                remote_port=self.remote_port,
+            )
             if self.remote_type == 0:  # SMB
                 # Use Kodi's built-in SMB support via xbmcvfs
                 # Construct SMB URL properly
@@ -181,9 +243,11 @@ class BackupManager:
                 else:
                     remote_url = f"smb://{smb_path}"
 
+                self._log(f"BackupManager: SMB remote URL={remote_url}", xbmc.LOGINFO)
                 self.remote_connection = remote_url
                 # Test connection by trying to list directory
                 dirs, files = xbmcvfs.listdir(remote_url)
+                self._log(f"BackupManager: SMB listdir success dirs={len(dirs)} files={len(files)}", xbmc.LOGINFO)
                 return True
                 
             elif self.remote_type == 1:  # NFS
@@ -196,7 +260,7 @@ class BackupManager:
                     # Try to convert IP or hostname to proper NFS format
                     # If it's just an IP or hostname, we need the export path
                     if '/' not in nfs_path:
-                        xbmc.log(f"Invalid NFS path format: {nfs_path}. Expected format: server:/export/path", xbmc.LOGERROR)
+                        self._log(f"Invalid NFS path format: {nfs_path}. Expected format: server:/export/path", xbmc.LOGERROR)
                         return False
                     # If it has / but no :, assume it's server/export format and convert
                     if ':' not in nfs_path:
@@ -204,7 +268,7 @@ class BackupManager:
                         if len(parts) == 2:
                             nfs_path = f"{parts[0]}:/{parts[1]}"
                         else:
-                            xbmc.log(f"Invalid NFS path format: {nfs_path}. Expected format: server:/export/path", xbmc.LOGERROR)
+                            self._log(f"Invalid NFS path format: {nfs_path}. Expected format: server:/export/path", xbmc.LOGERROR)
                             return False
                 
                 # Mount NFS share
@@ -223,13 +287,13 @@ class BackupManager:
                 
                 if result == 0:
                     self.remote_connection = mount_point
-                    xbmc.log(f"Successfully mounted NFS share: {nfs_path} to {mount_point}", xbmc.LOGINFO)
+                    self._log(f"BackupManager: Successfully mounted NFS share {nfs_path} to {mount_point}", xbmc.LOGINFO)
                     return True
                 else:
                     error_msg = f"Failed to mount NFS share: {nfs_path}. "
                     error_msg += "Please verify: 1) NFS server is running, 2) Export path is correct (format: server:/export/path), "
                     error_msg += "3) Network connectivity, 4) NFS client is installed"
-                    xbmc.log(error_msg, xbmc.LOGERROR)
+                    self._log(error_msg, xbmc.LOGERROR)
                     return False
                 
             elif self.remote_type == 2:  # FTP
@@ -250,7 +314,7 @@ class BackupManager:
             elif self.remote_type == 3:  # SFTP
                 # Check if paramiko is available
                 if not PARAMIKO_AVAILABLE:
-                    xbmc.log("Cannot use SFTP: Paramiko module not available", xbmc.LOGERROR)
+                    self._log("Cannot use SFTP: Paramiko module not available", xbmc.LOGERROR)
                     return False
                 
                 # Connect to SFTP server
@@ -290,56 +354,57 @@ class BackupManager:
                 
                 if not webdav_url.endswith('/'):
                     webdav_url += '/'
-                xbmc.log(f"Testing WebDAV connection to: {webdav_url}", xbmc.LOGINFO)
+                self._log(f"BackupManager: Testing WebDAV connection to: {webdav_url}", xbmc.LOGINFO)
                 
                 # Get or create WebDAV session
                 try:
                     session = self._create_webdav_session()
-                    xbmc.log("WebDAV session created successfully", xbmc.LOGINFO)
+                    self._log("BackupManager: WebDAV session created successfully", xbmc.LOGINFO)
                 except Exception as e:
-                    xbmc.log(f"Failed to create WebDAV session: {str(e)}", xbmc.LOGERROR)
+                    self._log(f"BackupManager: Failed to create WebDAV session: {str(e)}", xbmc.LOGERROR)
                     return False
                 
                 # Set credentials if provided
                 if self.remote_username and self.remote_password:
                     try:
                         session.auth = (self.remote_username, self.remote_password)
-                        xbmc.log("WebDAV credentials set successfully", xbmc.LOGINFO)
+                        self._log("WebDAV credentials set successfully", xbmc.LOGINFO)
                     except Exception as e:
-                        xbmc.log(f"Failed to set WebDAV credentials: {str(e)}", xbmc.LOGERROR)
+                        self._log(f"Failed to set WebDAV credentials: {str(e)}", xbmc.LOGERROR)
                         return False
                 
                 # Test connection with retry logic
                 try:
-                    xbmc.log(f"Testing WebDAV connection to: {webdav_url}", xbmc.LOGINFO)
+                    self._log(f"Testing WebDAV connection to: {webdav_url}", xbmc.LOGINFO)
                     response = session.request('PROPFIND', webdav_url, headers={'Depth': '1'})
-                    xbmc.log(f"WebDAV response status: {response.status_code}", xbmc.LOGINFO)
-                    xbmc.log(f"WebDAV response headers: {dict(response.headers)}", xbmc.LOGINFO)
-                    xbmc.log(f"WebDAV response text: {response.text}", xbmc.LOGINFO)
+                    self._log(f"BackupManager: WebDAV response status: {response.status_code}", xbmc.LOGINFO)
+                    self._log(f"BackupManager: WebDAV response headers: {dict(response.headers)}", xbmc.LOGDEBUG)
+                    self._log(f"BackupManager: WebDAV response text: {response.text}", xbmc.LOGDEBUG)
                     
                     if response.status_code in [207, 200]:  # 207 is Multi-Status response
                         self.remote_connection = {
                             'session': session,
                             'base_url': webdav_url
                         }
-                        xbmc.log("WebDAV connection successful", xbmc.LOGINFO)
+                        self._log("BackupManager: WebDAV connection successful", xbmc.LOGINFO)
                         return True
                     else:
-                        xbmc.log(f"WebDAV connection failed with status code: {response.status_code}", xbmc.LOGERROR)
-                        xbmc.log(f"WebDAV response: {response.text}", xbmc.LOGERROR)
+                        self._log(f"BackupManager: WebDAV connection failed with status code: {response.status_code}", xbmc.LOGERROR)
+                        self._log(f"BackupManager: WebDAV response: {response.text}", xbmc.LOGERROR)
                         return False
                 except requests.exceptions.RetryError as e:
-                    xbmc.log(f"WebDAV connection failed after retries: {str(e)}", xbmc.LOGERROR)
+                    self._log(f"BackupManager: WebDAV connection failed after retries: {str(e)}", xbmc.LOGERROR)
                     return False
                 except requests.exceptions.RequestException as e:
-                    xbmc.log(f"WebDAV request failed: {str(e)}", xbmc.LOGERROR)
+                    self._log(f"BackupManager: WebDAV request failed: {str(e)}", xbmc.LOGERROR)
                     return False
                 except Exception as e:
-                    xbmc.log(f"Unexpected error during WebDAV connection: {str(e)}", xbmc.LOGERROR)
+                    self._log(f"BackupManager: Unexpected error during WebDAV connection: {str(e)}", xbmc.LOGERROR)
                     return False
                 
         except Exception as e:
-            xbmc.log(f"Error connecting to remote location: {str(e)}", xbmc.LOGERROR)
+            self._log(f"Error connecting to remote location: {str(e)}", xbmc.LOGERROR)
+            self.log_verbose("connect_remote:error", error=str(e))
             return False
     
     def disconnect_remote(self):
@@ -374,7 +439,7 @@ class BackupManager:
                 self.remote_connection = None
                 
         except Exception as e:
-            xbmc.log(f"Error disconnecting from remote location: {str(e)}", xbmc.LOGERROR)
+            self._log(f"Error disconnecting from remote location: {str(e)}", xbmc.LOGERROR)
     
     def get_remote_path(self, filename):
         """Get the full path to a file on the remote location"""
@@ -404,10 +469,12 @@ class BackupManager:
         """Upload a file to the remote location"""
         try:
             if not os.path.exists(local_path):
+                self._log(f"BackupManager: Upload aborted missing local file {local_path}", xbmc.LOGERROR)
                 return False
 
             file_size = os.path.getsize(local_path)
             file_size_str = self.format_size(file_size)
+            self._log(f"BackupManager: Upload start local={local_path} remote={remote_filename} size={file_size_str}", xbmc.LOGINFO)
             
             # Show initial upload notification
             self.notify("Uploading backup...", persistent=True)
@@ -415,6 +482,7 @@ class BackupManager:
 
             if self.remote_type == 0:  # SMB
                 remote_path = self.get_remote_path(remote_filename)
+                self._log(f"BackupManager: SMB upload to {remote_path}", xbmc.LOGINFO)
                 with open(local_path, 'rb') as local_file:
                     with xbmcvfs.File(remote_path, 'wb') as remote_file:
                         bytes_uploaded = 0
@@ -448,6 +516,7 @@ class BackupManager:
                 if not self.remote_connection:
                     return False
                 dest_path = os.path.join(self.remote_connection, remote_filename)
+                self._log(f"BackupManager: NFS upload dest={dest_path}", xbmc.LOGINFO)
                 self.buffered_copy(local_path, dest_path, file_size, 0, file_size)
                 
             elif self.remote_type == 2:  # FTP
@@ -455,6 +524,7 @@ class BackupManager:
                     return False
                     
                 with open(local_path, 'rb') as local_file:
+                    self._log(f"BackupManager: FTP STOR {remote_filename}", xbmc.LOGINFO)
                     self.remote_connection.storbinary(
                         f'STOR {remote_filename}',
                         local_file,
@@ -465,6 +535,7 @@ class BackupManager:
                 if not self.remote_connection:
                     return False
                     
+                self._log(f"BackupManager: SFTP upload {remote_filename}", xbmc.LOGINFO)
                 def progress_callback(sent, total):
                     self._upload_progress_callback(sent, total)
                 
@@ -476,20 +547,23 @@ class BackupManager:
                     
                 url = self.remote_connection['base_url'].rstrip('/') + '/' + remote_filename
                 session = self.remote_connection['session']
+                self._log(f"BackupManager: WebDAV PUT {url}", xbmc.LOGINFO)
                 
                 with open(local_path, 'rb') as local_file:
                     response = session.put(url, data=self._create_upload_generator(local_file, file_size))
                     
                 if response.status_code not in [200, 201, 204]:
+                    self._log(f"BackupManager: WebDAV upload failed status={response.status_code} text={response.text}", xbmc.LOGERROR)
                     return False
 
             # Show completion notification
             self.notify("Upload complete", persistent=True)
             self.update_progress(100, "Upload complete")
+            self._log("BackupManager: Upload finished", xbmc.LOGINFO)
             return True
                 
         except Exception as e:
-            xbmc.log(f"Error uploading file: {str(e)}", xbmc.LOGERROR)
+            self._log(f"Error uploading file: {str(e)}", xbmc.LOGERROR)
             return False
             
     def _upload_progress_callback(self, sent, total):
@@ -569,7 +643,7 @@ class BackupManager:
                 return False
                 
         except Exception as e:
-            xbmc.log(f"Error downloading file from remote location: {str(e)}", xbmc.LOGERROR)
+            self._log(f"Error downloading file from remote location: {str(e)}", xbmc.LOGERROR)
             return False
     
     def list_remote_files(self):
@@ -581,38 +655,38 @@ class BackupManager:
         try:
             if self.remote_type == 0:  # SMB
                 # Use xbmcvfs to list files
-                xbmc.log(f"Listing SMB files from: {self.remote_connection}", xbmc.LOGINFO)
+                self._log(f"Listing SMB files from: {self.remote_connection}", xbmc.LOGINFO)
                 _, files = xbmcvfs.listdir(self.remote_connection)
-                xbmc.log(f"Found {len(files)} files via SMB", xbmc.LOGINFO)
+                self._log(f"Found {len(files)} files via SMB", xbmc.LOGINFO)
                 return files
                 
             elif self.remote_type == 1:  # NFS
                 # List files in the mounted directory
-                xbmc.log(f"Listing NFS files from: {self.remote_connection}", xbmc.LOGINFO)
+                self._log(f"Listing NFS files from: {self.remote_connection}", xbmc.LOGINFO)
                 files = [f for f in os.listdir(self.remote_connection) if os.path.isfile(os.path.join(self.remote_connection, f))]
-                xbmc.log(f"Found {len(files)} files via NFS", xbmc.LOGINFO)
+                self._log(f"Found {len(files)} files via NFS", xbmc.LOGINFO)
                 return files
                 
             elif self.remote_type == 2:  # FTP
                 # List files via FTP
-                xbmc.log(f"Listing FTP files", xbmc.LOGINFO)
+                self._log(f"Listing FTP files", xbmc.LOGINFO)
                 files = self.remote_connection.nlst()
                 # Filter out directories and hidden files
                 files = [f for f in files if not f.startswith('.') and not self.is_remote_dir(f)]
-                xbmc.log(f"Found {len(files)} files via FTP", xbmc.LOGINFO)
+                self._log(f"Found {len(files)} files via FTP", xbmc.LOGINFO)
                 return files
                 
             elif self.remote_type == 3:  # SFTP
                 # List files via SFTP
-                xbmc.log(f"Listing SFTP files", xbmc.LOGINFO)
+                self._log(f"Listing SFTP files", xbmc.LOGINFO)
                 files = [f for f in self.remote_connection.listdir() if not self.is_remote_dir(f)]
-                xbmc.log(f"Found {len(files)} files via SFTP", xbmc.LOGINFO)
+                self._log(f"Found {len(files)} files via SFTP", xbmc.LOGINFO)
                 return files
                 
             elif self.remote_type == 4:  # WebDAV
                 # List files via WebDAV
-                xbmc.log(f"Listing WebDAV files from: {self.remote_connection['base_url']}", xbmc.LOGINFO)
-                xbmc.log(f"Using WebDAV credentials: username={self.remote_username}, password=****************", xbmc.LOGINFO)
+                self._log(f"Listing WebDAV files from: {self.remote_connection['base_url']}", xbmc.LOGINFO)
+                self._log(f"Using WebDAV credentials: username={self.remote_username}, password=****************", xbmc.LOGINFO)
                 
                 response = self.remote_connection['session'].request(
                     'PROPFIND', 
@@ -620,20 +694,20 @@ class BackupManager:
                     headers={'Depth': '1'}
                 )
                 
-                xbmc.log(f"WebDAV PROPFIND response status: {response.status_code}", xbmc.LOGINFO)
-                xbmc.log(f"WebDAV response headers: {dict(response.headers)}", xbmc.LOGINFO)
-                xbmc.log(f"WebDAV response text: {response.text}", xbmc.LOGINFO)
+                self._log(f"WebDAV PROPFIND response status: {response.status_code}", xbmc.LOGINFO)
+                self._log(f"WebDAV response headers: {dict(response.headers)}", xbmc.LOGINFO)
+                self._log(f"WebDAV response text: {response.text}", xbmc.LOGINFO)
                 
                 if response.status_code != 207:  # Multi-Status response
-                    xbmc.log(f"WebDAV PROPFIND failed with status code: {response.status_code}", xbmc.LOGERROR)
-                    xbmc.log(f"WebDAV response: {response.text}", xbmc.LOGERROR)
+                    self._log(f"WebDAV PROPFIND failed with status code: {response.status_code}", xbmc.LOGERROR)
+                    self._log(f"WebDAV response: {response.text}", xbmc.LOGERROR)
                     return []
                 
                 # Parse XML response to get file names
                 files = []
                 
                 # Log the raw response text for debugging
-                xbmc.log(f"Raw response text: {response.text}", xbmc.LOGINFO)
+                self._log(f"Raw response text: {response.text}", xbmc.LOGINFO)
                 
                 # Look for both href and displayname tags (case insensitive)
                 response_lines = response.text.splitlines()
@@ -644,31 +718,31 @@ class BackupManager:
                         href = line[line.find('<D:href>')+8:line.find('</D:href>')]
                         filename = href.split('/')[-1] if href.split('/')[-1] else href.split('/')[-2]
                         filename = urllib.parse.unquote(filename)
-                        xbmc.log(f"Found href: {filename}", xbmc.LOGINFO)
+                        self._log(f"Found href: {filename}", xbmc.LOGINFO)
                         
                         if filename.endswith('.zip'):
                             if filename not in files:  # Avoid duplicates
                                 files.append(filename)
-                                xbmc.log(f"Added file from href: {filename}", xbmc.LOGINFO)
+                                self._log(f"Added file from href: {filename}", xbmc.LOGINFO)
                     
                     # Check for displayname tags (case insensitive)
                     if '<D:displayname>' in line and '</D:displayname>' in line:
                         filename = line[line.find('<D:displayname>')+14:line.find('</D:displayname>')]
-                        xbmc.log(f"Found displayname: {filename}", xbmc.LOGINFO)
+                        self._log(f"Found displayname: {filename}", xbmc.LOGINFO)
                         
                         if filename.endswith('.zip'):
                             if filename not in files:  # Avoid duplicates
                                 files.append(filename)
-                                xbmc.log(f"Added file from displayname: {filename}", xbmc.LOGINFO)
+                                self._log(f"Added file from displayname: {filename}", xbmc.LOGINFO)
                 
-                xbmc.log(f"Final list of backup files found: {files}", xbmc.LOGINFO)
-                xbmc.log(f"Found {len(files)} backup files via WebDAV", xbmc.LOGINFO)
+                self._log(f"Final list of backup files found: {files}", xbmc.LOGINFO)
+                self._log(f"Found {len(files)} backup files via WebDAV", xbmc.LOGINFO)
                 return files
                 
         except Exception as e:
-            xbmc.log(f"Error listing files in remote location: {str(e)}", xbmc.LOGERROR)
+            self._log(f"Error listing files in remote location: {str(e)}", xbmc.LOGERROR)
             import traceback
-            xbmc.log(f"Traceback: {traceback.format_exc()}", xbmc.LOGERROR)
+            self._log(f"Traceback: {traceback.format_exc()}", xbmc.LOGERROR)
             return []
     
     def is_remote_dir(self, path):
@@ -716,7 +790,7 @@ class BackupManager:
                 return response.status_code in [200, 204]
                 
         except Exception as e:
-            xbmc.log(f"Error deleting file from remote location: {str(e)}", xbmc.LOGERROR)
+            self._log(f"Error deleting file from remote location: {str(e)}", xbmc.LOGERROR)
             return False
     
     def get_next_backup_time(self):
@@ -779,11 +853,168 @@ class BackupManager:
             self.progress_dialog.close()
             self.progress_dialog = None
             
-    def update_progress(self, percent, message, detailed_info=""):
+    def sanitize_string_encoding(self, string_value):
+        """Sanitize string to handle Unicode surrogates and encoding issues"""
+        if not isinstance(string_value, str):
+            try:
+                string_value = str(string_value)
+            except Exception:
+                return "<invalid-encoding>"
+        try:
+            # Test if the string can be encoded to UTF-8 safely
+            string_value.encode('utf-8', errors='strict')
+            return string_value
+        except (UnicodeEncodeError, UnicodeDecodeError):
+            # Replace unencodable characters to guarantee safe UTF-8 strings.
+            try:
+                return string_value.encode('utf-8', errors='replace').decode('utf-8')
+            except Exception:
+                try:
+                    return string_value.encode('ascii', errors='backslashreplace').decode('ascii', errors='ignore')
+                except Exception:
+                    return "<invalid-encoding>"
+    
+    def format_section_name(self, item_name):
+        """Format section name for display"""
+        item_name = self.sanitize_string_encoding(item_name)
+        section_map = {
+            'config': 'Configuration',
+            'guisettings': 'GUI Settings',
+            'advancedsettings': 'Advanced Settings',
+            'sources': 'Sources',
+            'keyboard': 'Keyboard',
+            'addons': 'Add-ons',
+            'addon_data': 'Add-on Data',
+            'keymaps': 'Keymaps',
+            'userdata': 'User Data'
+        }
+        # Handle repository items
+        if item_name.startswith('repo_'):
+            repo_name = item_name.replace('repo_', '')
+            return f'Repository: {repo_name}'
+        return section_map.get(item_name, item_name)
+    
+    def update_progress(self, percent, message, detailed_info="", section_name=""):
         """Update the progress dialog"""
         if self.progress_dialog:
-            display_message = f"{message} - {detailed_info}" if detailed_info else message
+            # Add section info if detailed notifications are enabled
+            if section_name and self.addon.getSettingBool('detailed_notifications'):
+                formatted_section = self.sanitize_string_encoding(self.format_section_name(section_name))
+                display_message = f"{message} - {formatted_section}"
+                if detailed_info:
+                    display_message = f"{display_message}: {detailed_info}"
+            else:
+                display_message = f"{message} - {detailed_info}" if detailed_info else message
             self.progress_dialog.update(percent, message=display_message)
+
+    def set_operation_summary(self, operation, success, details=None):
+        """Store a structured summary for the latest backup/restore operation."""
+        self.last_operation_summary = {
+            'operation': operation,
+            'success': bool(success),
+            'timestamp': datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+            'details': details or {}
+        }
+
+    def show_last_operation_summary(self):
+        """Show a large summary dialog for the latest operation."""
+        if not self.last_operation_summary:
+            return False
+
+        summary = self.last_operation_summary
+        details = summary.get('details', {})
+        operation = summary.get('operation', 'operation').capitalize()
+        status = 'Completed' if summary.get('success') else 'Failed'
+
+        def colorize(text, color):
+            return f"[COLOR {color}]{text}[/COLOR]"
+
+        palette = {
+            'title': 'FF4FC3F7',
+            'ok': 'FF66BB6A',
+            'fail': 'FFEF5350',
+            'label': 'FF90CAF9',
+            'section': 'FFFFD54F',
+            'muted': 'FFB0BEC5',
+        }
+
+        def add_key_value(lines_list, label, value):
+            if value is None:
+                return
+            wrapped = textwrap.wrap(
+                str(value),
+                width=90,
+                break_long_words=False,
+                break_on_hyphens=False,
+            ) or [""]
+            lines_list.append(f"{colorize(label, palette['label'])}: {wrapped[0]}")
+            for continuation in wrapped[1:]:
+                lines_list.append(f"{' ' * (len(label) + 2)}{continuation}")
+
+        def add_wrapped_bullet(lines_list, value):
+            wrapped = textwrap.wrap(
+                str(value),
+                width=96,
+                break_long_words=False,
+                break_on_hyphens=False,
+            ) or [""]
+            lines_list.append(f"* {wrapped[0]}")
+            for continuation in wrapped[1:]:
+                lines_list.append(f"  {continuation}")
+
+        status_line = colorize(status, palette['ok'] if summary.get('success') else palette['fail'])
+
+        lines = [
+            colorize(f"{operation} Summary", palette['title']),
+            colorize("=" * 60, palette['muted']),
+            f"{colorize('Status', palette['label'])}: {status_line}",
+            f"{colorize('Time', palette['label'])}: {summary.get('timestamp', 'Unknown')}",
+            colorize("Use up/down to scroll", palette['muted']),
+        ]
+
+        add_key_value(lines, 'Backup Name', details.get('backup_name'))
+        add_key_value(lines, 'Backup File', details.get('backup_file'))
+        add_key_value(lines, 'Location', details.get('location'))
+        add_key_value(lines, 'Total Size', details.get('total_size_formatted'))
+        add_key_value(lines, 'Compressed Size', details.get('compressed_size_formatted'))
+        if details.get('compression_saved') is not None:
+            lines.append(f"{colorize('Compression Saved', palette['label'])}: {details.get('compression_saved'):.1f}%")
+        if details.get('total_files') is not None:
+            lines.append(f"{colorize('Total Files', palette['label'])}: {details.get('total_files')}")
+        if details.get('restored_files') is not None:
+            lines.append(f"{colorize('Restored Files', palette['label'])}: {details.get('restored_files')}")
+        if details.get('skipped_files') is not None:
+            lines.append(f"{colorize('Skipped Files', palette['label'])}: {details.get('skipped_files')}")
+
+        sections = details.get('sections') or {}
+        if sections:
+            lines.append("")
+            lines.append(colorize("Sections", palette['section']))
+            lines.append(colorize("-" * 60, palette['muted']))
+            for section_name in sorted(sections.keys()):
+                section_info = sections.get(section_name, {})
+                file_count = section_info.get('files', 0)
+                byte_count = section_info.get('bytes', 0)
+                section_label = self.format_section_name(section_name)
+                add_wrapped_bullet(lines, f"{section_label}: {file_count} files ({self.format_size(byte_count)})")
+
+        skipped_examples = details.get('skipped_examples') or []
+        if skipped_examples:
+            lines.append("")
+            lines.append(colorize("Skipped File Examples", palette['section']))
+            lines.append(colorize("-" * 60, palette['muted']))
+            for item in skipped_examples:
+                add_wrapped_bullet(lines, item)
+
+        if details.get('message'):
+            lines.append("")
+            lines.append(colorize("Notes", palette['section']))
+            lines.append(colorize("-" * 60, palette['muted']))
+            add_wrapped_bullet(lines, details.get('message'))
+
+        title = f"{self.addon.getAddonInfo('name')} - {operation} Summary"
+        xbmcgui.Dialog().textviewer(title, "\n".join(lines))
+        return True
     
     def format_size(self, size_bytes):
         """Format file size in bytes to human-readable format"""
@@ -795,6 +1026,31 @@ class BackupManager:
             return f"{size_bytes/1024/1024:.1f} MB"
         else:
             return f"{size_bytes/1024/1024/1024:.2f} GB"
+
+    def format_backup_date(self, backup_reference):
+        """Return a human-readable backup date from filename or file metadata."""
+        try:
+            backup_name = os.path.basename(str(backup_reference))
+            base_name = backup_name[:-4] if backup_name.lower().endswith('.zip') else backup_name
+
+            # Preferred format: *_YYYYMMDD_HHMMSS
+            match_split = re.search(r'(\d{8})_(\d{6})$', base_name)
+            if match_split:
+                timestamp = f"{match_split.group(1)}{match_split.group(2)}"
+                return datetime.strptime(timestamp, '%Y%m%d%H%M%S').strftime('%Y-%m-%d %H:%M:%S')
+
+            # Legacy format: *_YYYYMMDDHHMMSS
+            match_full = re.search(r'(\d{14})$', base_name)
+            if match_full:
+                return datetime.strptime(match_full.group(1), '%Y%m%d%H%M%S').strftime('%Y-%m-%d %H:%M:%S')
+
+            # Fallback to filesystem timestamp for local files
+            if isinstance(backup_reference, str) and os.path.exists(backup_reference):
+                return datetime.fromtimestamp(os.path.getmtime(backup_reference)).strftime('%Y-%m-%d %H:%M:%S')
+        except Exception as e:
+            self._log(f"Error parsing backup date for {backup_reference}: {str(e)}", xbmc.LOGWARNING)
+
+        return "Unknown date"
     
     def get_repository_paths(self):
         """Get all repository addon paths"""
@@ -816,12 +1072,12 @@ class BackupManager:
         paths = {}
         
         # Log which backup items are selected
-        xbmc.log("Backup items selected:", xbmc.LOGINFO)
-        xbmc.log(f"Configs: {self.addon.getSettingBool('backup_configs')}", xbmc.LOGINFO)
-        xbmc.log(f"Addons: {self.addon.getSettingBool('backup_addons')}", xbmc.LOGINFO)
-        xbmc.log(f"Repositories: {self.addon.getSettingBool('backup_repositories')}", xbmc.LOGINFO)
-        xbmc.log(f"Userdata: {self.addon.getSettingBool('backup_userdata')}", xbmc.LOGINFO)
-        xbmc.log(f"Sources: {self.addon.getSettingBool('backup_sources')}", xbmc.LOGINFO)
+        self._log("Backup items selected:", xbmc.LOGINFO)
+        self._log(f"Configs: {self.addon.getSettingBool('backup_configs')}", xbmc.LOGINFO)
+        self._log(f"Addons: {self.addon.getSettingBool('backup_addons')}", xbmc.LOGINFO)
+        self._log(f"Repositories: {self.addon.getSettingBool('backup_repositories')}", xbmc.LOGINFO)
+        self._log(f"Userdata: {self.addon.getSettingBool('backup_userdata')}", xbmc.LOGINFO)
+        self._log(f"Sources: {self.addon.getSettingBool('backup_sources')}", xbmc.LOGINFO)
         
         # Configuration Files
         if self.addon.getSettingBool('backup_configs'):
@@ -839,9 +1095,9 @@ class BackupManager:
                     shutil.copy2(config_src, config_temp)
                     self._temp_files.add(config_temp)  # Track for cleanup
                     paths['config'] = config_temp  # Use temp location for backup
-                    xbmc.log(f"Copied config.txt to temp location: {config_temp}", xbmc.LOGINFO)
+                    self._log(f"Copied config.txt to temp location: {config_temp}", xbmc.LOGINFO)
                 except Exception as e:
-                    xbmc.log(f"Failed to copy config.txt: {str(e)}", xbmc.LOGERROR)
+                    self._log(f"Failed to copy config.txt: {str(e)}", xbmc.LOGERROR)
 
             # Add other config files
             config_paths = {
@@ -854,37 +1110,37 @@ class BackupManager:
             for key, path in config_paths.items():
                 if os.path.exists(path):
                     paths[key] = path
-            xbmc.log(f"Added config paths: {list(paths.keys())}", xbmc.LOGINFO)
+            self._log(f"Added config paths: {list(paths.keys())}", xbmc.LOGINFO)
         
         # Sources
         if self.addon.getSettingBool('backup_sources'):
             sources_path = os.path.join(self.kodi_userdata, 'sources.xml')
             if os.path.exists(sources_path):
                 paths['sources'] = sources_path
-                xbmc.log("Added sources path", xbmc.LOGINFO)
+                self._log("Added sources path", xbmc.LOGINFO)
         
         # Addons
         if self.addon.getSettingBool('backup_addons'):
             addons_path = os.path.join(self.kodi_home, 'addons')
             if os.path.exists(addons_path):
                 paths['addons'] = addons_path
-                xbmc.log("Added addons path", xbmc.LOGINFO)
+                self._log("Added addons path", xbmc.LOGINFO)
         
         # Repositories
         if self.addon.getSettingBool('backup_repositories'):
             repo_paths = self.get_repository_paths()
             if repo_paths:
                 paths.update(repo_paths)
-                xbmc.log(f"Added repository paths: {list(repo_paths.keys())}", xbmc.LOGINFO)
+                self._log(f"Added repository paths: {list(repo_paths.keys())}", xbmc.LOGINFO)
         
         # Addon User Data and Settings
         if self.addon.getSettingBool('backup_userdata'):
             addon_data_path = os.path.join(self.kodi_userdata, 'addon_data')
             if os.path.exists(addon_data_path):
                 paths['addon_data'] = addon_data_path
-                xbmc.log("Added addon data path", xbmc.LOGINFO)
+                self._log("Added addon data path", xbmc.LOGINFO)
         
-        xbmc.log(f"Final backup paths: {list(paths.keys())}", xbmc.LOGINFO)
+        self._log(f"Final backup paths: {list(paths.keys())}", xbmc.LOGINFO)
         return paths
     
     def cleanup_resources(self):
@@ -896,7 +1152,7 @@ class BackupManager:
                 try:
                     self._webdav_session.close()
                 except Exception as e:
-                    xbmc.log(f"Error closing WebDAV session: {str(e)}", xbmc.LOGWARNING)
+                    self._log(f"Error closing WebDAV session: {str(e)}", xbmc.LOGWARNING)
                 finally:
                     self._webdav_session = None
                 
@@ -905,7 +1161,7 @@ class BackupManager:
                 try:
                     self.disconnect_remote()
                 except Exception as e:
-                    xbmc.log(f"Error disconnecting remote: {str(e)}", xbmc.LOGWARNING)
+                    self._log(f"Error disconnecting remote: {str(e)}", xbmc.LOGWARNING)
             
             # Clean up temporary files
             if hasattr(self, '_temp_files'):
@@ -917,7 +1173,7 @@ class BackupManager:
                             else:
                                 os.remove(temp_file)
                     except Exception as e:
-                        xbmc.log(f"Error removing temp file {temp_file}: {str(e)}", xbmc.LOGWARNING)
+                        self._log(f"Error removing temp file {temp_file}: {str(e)}", xbmc.LOGWARNING)
             
             self._temp_files.clear()
             
@@ -925,7 +1181,7 @@ class BackupManager:
             gc.collect()
             
         except Exception as e:
-            xbmc.log(f"Error during resource cleanup: {str(e)}", xbmc.LOGERROR)
+            self._log(f"Error during resource cleanup: {str(e)}", xbmc.LOGERROR)
 
     def _cleanup_old_temp_files(self):
         """Clean up any old temporary files from previous sessions"""
@@ -937,7 +1193,7 @@ class BackupManager:
                     try:
                         # Skip JSON files that contain remote backup information
                         if item.endswith('.json') and 'remote_backup_' in item:
-                            xbmc.log(f"Preserving remote backup info file: {item}", xbmc.LOGINFO)
+                            self._log(f"Preserving remote backup info file: {item}", xbmc.LOGINFO)
                             continue
                             
                         if os.path.isfile(item_path):
@@ -945,9 +1201,9 @@ class BackupManager:
                         elif os.path.isdir(item_path):
                             shutil.rmtree(item_path)
                     except Exception as e:
-                        xbmc.log(f"Error cleaning up old temp file {item}: {str(e)}")
+                        self._log(f"Error cleaning up old temp file {item}: {str(e)}", xbmc.LOGWARNING)
         except Exception as e:
-            xbmc.log(f"Error in cleanup_old_temp_files: {str(e)}")
+            self._log(f"Error in cleanup_old_temp_files: {str(e)}", xbmc.LOGWARNING)
 
     def cleanup_current_session(self):
         """Clean up temporary files from current session"""
@@ -957,7 +1213,7 @@ class BackupManager:
                 for item in os.listdir(self.temp_dir):
                     item_path = os.path.join(self.temp_dir, item)
                     if item.endswith('.json') and 'remote_backup_' in item:
-                        xbmc.log(f"Preserving remote backup info file: {item}", xbmc.LOGINFO)
+                        self._log(f"Preserving remote backup info file: {item}", xbmc.LOGINFO)
                         continue
                     try:
                         if os.path.isfile(item_path):
@@ -965,10 +1221,10 @@ class BackupManager:
                         elif os.path.isdir(item_path):
                             shutil.rmtree(item_path)
                     except Exception as e:
-                        xbmc.log(f"Error removing temp file {item}: {str(e)}")
-                xbmc.log("Cleaned up current session temporary directory")
+                        self._log(f"Error removing temp file {item}: {str(e)}", xbmc.LOGWARNING)
+                self._log("Cleaned up current session temporary directory", xbmc.LOGINFO)
         except Exception as e:
-            xbmc.log(f"Error in cleanup_current_session: {str(e)}")
+            self._log(f"Error in cleanup_current_session: {str(e)}", xbmc.LOGWARNING)
 
     def __del__(self):
         """Cleanup when object is destroyed"""
@@ -981,6 +1237,7 @@ class BackupManager:
         bytes_copied = 0
         last_update = time.time()
         update_interval = 0.5  # Update every 0.5 seconds
+        self._log(f"BackupManager: buffered_copy source={source} dest={dest} size={self.format_size(file_size)}", xbmc.LOGINFO)
         
         with open(source, 'rb') as src, open(dest, 'wb') as dst:
             while True:
@@ -1018,13 +1275,27 @@ class BackupManager:
                     
                     last_update = current_time
         
+        self._log(f"BackupManager: buffered_copy complete bytes={bytes_copied}", xbmc.LOGINFO)
         return bytes_copied
 
     def create_backup(self, backup_name=None):
         """Create a backup of the selected items"""
         try:
+            self._refresh_logging_flag()
+            self.log_verbose(
+                "create_backup:start",
+                backup_name=backup_name,
+                location_type=self.location_type,
+                backup_dir=self.backup_dir,
+                remote_type=getattr(self, "remote_type", None),
+                remote_path=getattr(self, "remote_path", None),
+                remote_username=getattr(self, "remote_username", None),
+                remote_password_set=bool(getattr(self, "remote_password", "")),
+                remote_port=getattr(self, "remote_port", None),
+            )
             # Notify backup start
             backup_type = "scheduled" if backup_name else "manual"
+            self._log(f"BackupManager: create_backup type={backup_type} location_type={self.location_type}", xbmc.LOGINFO)
             self.email_notifier.notify_backup_started(backup_type)
             
             # Show initial progress
@@ -1046,6 +1317,9 @@ class BackupManager:
                 if not self.connect_remote():
                     self.notify("Backup failed", "Failed to connect to remote location", persistent=True)
                     self.close_progress()
+                    self.set_operation_summary('backup', False, {
+                        'message': 'Failed to connect to remote location'
+                    })
                     return False, "Failed to connect to remote location"
             
             timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
@@ -1053,14 +1327,19 @@ class BackupManager:
             # Get paths to backup
             self.notify("Gathering files to backup...", persistent=True)
             paths = self.get_backup_paths()
+            self._log(f"BackupManager: Paths to backup resolved {list(paths.keys())}", xbmc.LOGINFO)
             
             # Log the paths that will be backed up
-            xbmc.log(f"Paths to backup: {paths}", xbmc.LOGINFO)
+            self._log(f"BackupManager: Paths to backup: {paths}", xbmc.LOGDEBUG)
+            self.log_verbose("create_backup:paths", paths=list(paths.keys()))
             
             # Don't create empty backups
             if not paths:
                 self.notify("Backup failed", "No items selected for backup", persistent=True)
                 self.close_progress()
+                self.set_operation_summary('backup', False, {
+                    'message': 'No items selected for backup'
+                })
                 return False, "No items selected for backup"
             
             # Create backup name with included items
@@ -1079,11 +1358,15 @@ class BackupManager:
             # Add items to backup name
             items_str = '-'.join(backup_items) if backup_items else 'empty'
             backup_name = f'backup_{items_str}_{timestamp}'
+            self._log(f"BackupManager: Backup name {backup_name}", xbmc.LOGINFO)
             
             # Create backup path in temp directory
             backup_path = os.path.join(self.temp_dir, f'{backup_name}.zip')
             self._temp_files.add(backup_path)  # Track for cleanup
             self._temp_files.add(self.temp_dir)  # Track temp directory for cleanup
+            
+            # Initialize progress dialog for backup operation
+            self.notify("Starting backup process...", progress=True)
             
             try:
                 # Calculate total size and collect files to backup
@@ -1093,10 +1376,10 @@ class BackupManager:
                 
                 # Process each path based on its type
                 for item_name, path in paths.items():
-                    xbmc.log(f"Processing backup item: {item_name} at path: {path}", xbmc.LOGINFO)
+                    self._log(f"Processing backup item: {item_name} at path: {path}", xbmc.LOGINFO)
                     
                     if not os.path.exists(path):
-                        xbmc.log(f"Path does not exist: {path}", xbmc.LOGWARNING)
+                        self._log(f"Path does not exist: {path}", xbmc.LOGWARNING)
                         continue
                         
                     if os.path.isfile(path):
@@ -1118,11 +1401,12 @@ class BackupManager:
                                     arcname = 'userdata/keyboard.xml'
                                 else:
                                     arcname = item_name
+                                arcname = self.sanitize_string_encoding(arcname)
                                     
-                                files_to_backup.append((path, arcname, file_size))
-                                xbmc.log(f"Added file to backup: {path} as {arcname} ({self.format_size(file_size)})", xbmc.LOGINFO)
+                                files_to_backup.append((path, arcname, file_size, item_name))
+                                self._log(f"Added file to backup: {path} as {arcname} ({self.format_size(file_size)})", xbmc.LOGINFO)
                             except OSError as e:
-                                xbmc.log(f"Error getting size for {path}: {str(e)}", xbmc.LOGWARNING)
+                                self._log(f"Error getting size for {path}: {str(e)}", xbmc.LOGWARNING)
                                 continue
                     else:  # Directory
                         for root, dirs, files in os.walk(path):
@@ -1149,22 +1433,46 @@ class BackupManager:
                                         else:
                                             rel_path = os.path.relpath(file_path, path)
                                             arcname = f"{item_name}/{rel_path}"
+                                        arcname = self.sanitize_string_encoding(arcname)
                                         
-                                        files_to_backup.append((file_path, arcname, file_size))
+                                        files_to_backup.append((file_path, arcname, file_size, item_name))
                                     except OSError as e:
-                                        xbmc.log(f"Error getting size for {file_path}: {str(e)}", xbmc.LOGWARNING)
+                                        self._log(f"Error getting size for {file_path}: {str(e)}", xbmc.LOGWARNING)
                                         continue
                 
-                xbmc.log(f"Total files to backup: {len(files_to_backup)}", xbmc.LOGINFO)
+                self._log(f"BackupManager: Total files to backup {len(files_to_backup)}", xbmc.LOGINFO)
                 total_size_formatted = self.format_size(total_size)
                 self.notify("Starting backup", f"Total size: {total_size_formatted}")
-                xbmc.log(f"Total backup size: {total_size_formatted} ({total_size} bytes)", xbmc.LOGINFO)
+                self._log(f"BackupManager: Total backup size {total_size_formatted} ({total_size} bytes)", xbmc.LOGINFO)
+
+                section_stats = {}
+                for _, _, entry_size, entry_section in files_to_backup:
+                    section_bucket = section_stats.setdefault(entry_section, {'files': 0, 'bytes': 0})
+                    section_bucket['files'] += 1
+                    section_bucket['bytes'] += entry_size
                 
-                # Create manifest
+                # Create manifest with sanitized paths (handle Unicode surrogates)
+                sanitized_paths = {}
+                for key, value in paths.items():
+                    try:
+                        # Test if the path can be encoded to JSON
+                        # If it contains surrogates, encode/decode with error handling
+                        value.encode('utf-8', errors='strict')
+                        sanitized_paths[self.sanitize_string_encoding(key)] = value
+                    except (UnicodeEncodeError, UnicodeDecodeError):
+                        # Path contains problematic characters, encode with surrogateescape
+                        try:
+                            sanitized = value.encode('utf-8', errors='surrogateescape').decode('utf-8', errors='replace')
+                            sanitized_paths[self.sanitize_string_encoding(key)] = sanitized
+                        except Exception:
+                            # Last resort: use a safe representation
+                            safe_key = self.sanitize_string_encoding(key)
+                            sanitized_paths[safe_key] = f"<path with encoding issues: {safe_key}>"
+                
                 manifest = {
                     'timestamp': timestamp,
-                    'items': list(paths.keys()),
-                    'paths': paths,
+                    'items': [self.sanitize_string_encoding(k) for k in paths.keys()],
+                    'paths': sanitized_paths,
                     'backed_up_files': [],
                     'total_size': total_size,
                     'total_size_formatted': total_size_formatted
@@ -1187,13 +1495,16 @@ class BackupManager:
                     last_update_time = time.time()
                     update_interval = 0.5  # Update progress every 0.5 seconds
                     batch_size = 0  # Track size of current batch
+                    self._log(f"BackupManager: ZIP compression method={compression_method} level={compression_strength}", xbmc.LOGINFO)
                     
-                    for file_path, arcname, file_size in files_to_backup:
+                    for file_path, arcname, file_size, section_name in files_to_backup:
                         try:
+                            safe_arcname = self.sanitize_string_encoding(arcname)
+                            self._log(f"BackupManager: Adding to zip {file_path} -> {safe_arcname} size={self.format_size(file_size)} section={section_name}", xbmc.LOGDEBUG)
                             # Read and write directly to zip
                             with open(file_path, 'rb') as source:
                                 # Create a ZipInfo object for more control
-                                info = zipfile.ZipInfo(arcname)
+                                info = zipfile.ZipInfo(safe_arcname)
                                 info.file_size = file_size
                                 info.compress_type = compression_method
                                 
@@ -1220,26 +1531,45 @@ class BackupManager:
                                             processed_formatted = self.format_size(processed_size)
                                             total_formatted = self.format_size(total_size)
                                             
-                                            # Update progress notification
-                                            self.notify("Backing up files", f"{processed_formatted} / {total_formatted} ({progress}%)")
+                                            # Update progress dialog with section info
+                                            self.update_progress(progress, "Backing up files", f"{processed_formatted} / {total_formatted}", section_name)
+                                            self._log(f"BackupManager: Zip progress {progress}% processed={processed_formatted}/{total_formatted}", xbmc.LOGDEBUG)
                                             last_update_time = current_time
                                             batch_size = 0  # Reset batch size
                         
-                            manifest['backed_up_files'].append(arcname)
+                            manifest['backed_up_files'].append(safe_arcname)
                             
                         except Exception as e:
-                            xbmc.log(f"Error backing up file {file_path}: {str(e)}", xbmc.LOGERROR)
+                            self._log(f"Error backing up file {file_path}: {str(e)}", xbmc.LOGERROR)
                     
                     # Show final progress
                     progress = int((processed_size / total_size) * 100) if total_size > 0 else 0
                     processed_formatted = self.format_size(processed_size)
                     total_formatted = self.format_size(total_size)
-                    self.notify("Backing up files", f"{processed_formatted} / {total_formatted} ({progress}%)")
+                    self.update_progress(progress, "Backing up files", f"{processed_formatted} / {total_formatted}", section_name if 'section_name' in locals() else "")
+                    self._log(f"BackupManager: Final zip progress {progress}% size={processed_formatted}/{total_formatted}", xbmc.LOGINFO)
                     
-                    # Add manifest file
-                    zipf.writestr('manifest.json', json.dumps(manifest, indent=4))
+                    # Add manifest file with final encoding safety check
+                    try:
+                        # Final safety check: ensure all strings in manifest are JSON-safe
+                        manifest_json = json.dumps(manifest, indent=4, default=str)
+                    except (UnicodeEncodeError, ValueError) as e:
+                        # If JSON encoding fails, sanitize all strings in manifest
+                        safe_manifest = {
+                            'timestamp': self.sanitize_string_encoding(manifest.get('timestamp', '')),
+                            'items': [self.sanitize_string_encoding(item) for item in manifest.get('items', [])],
+                            'paths': {k: self.sanitize_string_encoding(v) for k, v in manifest.get('paths', {}).items()},
+                            'backed_up_files': [self.sanitize_string_encoding(f) for f in manifest.get('backed_up_files', [])],
+                            'total_size': manifest.get('total_size', 0),
+                            'total_size_formatted': self.sanitize_string_encoding(manifest.get('total_size_formatted', ''))
+                        }
+                        manifest_json = json.dumps(safe_manifest, indent=4, default=str)
+                        self._log(f"BackupManager: Manifest encoding safety fallback applied due to: {str(e)}", xbmc.LOGWARNING)
+                    
+                    zipf.writestr('manifest.json', manifest_json)
                 
                 # Show completion notification
+                self.close_progress()
                 self.notify("Backup completed", f"Total size: {total_size_formatted}")
                 
                 # Get final backup size
@@ -1247,20 +1577,34 @@ class BackupManager:
                 final_size_formatted = self.format_size(final_size)
                 compression_ratio = (1 - (final_size / total_size)) * 100 if total_size > 0 else 0
                 size_info = f"Original: {total_size_formatted}, Compressed: {final_size_formatted} ({compression_ratio:.1f}% saved)"
+                self._log(f"BackupManager: Zip complete {size_info}", xbmc.LOGINFO)
                 
                 # Upload to remote location if needed
                 if self.location_type != 0:  # Remote
-                    self.notify("Uploading backup...", size_info)
-                    if not self.upload_file(backup_path, f'{backup_name}.zip'):
+                    # Initialize progress dialog for upload
+                    self.notify("Uploading backup...", size_info, progress=True)
+                    upload_target = f'{backup_name}.zip'
+                    self._log(f"BackupManager: Uploading {backup_path} -> {upload_target}", xbmc.LOGINFO)
+                    if not self.upload_file(backup_path, upload_target):
                         self.notify("Backup failed", "Failed to upload to remote location", persistent=True)
                         self.close_progress()
                         self.disconnect_remote()
+                        self.set_operation_summary('backup', False, {
+                            'backup_name': f'{backup_name}.zip',
+                            'location': self.remote_path,
+                            'total_files': len(files_to_backup),
+                            'total_size_formatted': total_size_formatted,
+                            'message': 'Failed to upload backup to remote location'
+                        })
                         return False, "Failed to upload backup to remote location"
                 else:  # Local
                     # Move the backup file to the final location
                     final_path = os.path.join(self.backup_dir, f'{backup_name}.zip')
                     shutil.move(backup_path, final_path)
                     self._temp_files.remove(backup_path)  # Remove from cleanup tracking
+                
+                # Close progress dialog before showing final notification
+                self.close_progress()
                 
                 # Cleanup old backups
                 self.cleanup_old_backups(int(self.addon.getSetting('max_backups')))
@@ -1271,7 +1615,22 @@ class BackupManager:
                 
                 # Show completion notification with persistent notification
                 self.notify("Backup completed successfully", size_info, True)
-                xbmc.log(f"Backup completed: {size_info}", xbmc.LOGINFO)
+                self._log(f"Backup completed: {size_info}", xbmc.LOGINFO)
+
+                backup_target_name = f'{backup_name}.zip'
+                backup_target_path = final_path if self.location_type == 0 else backup_target_name
+                backup_location = self.backup_dir if self.location_type == 0 else self.remote_path
+                self.set_operation_summary('backup', True, {
+                    'backup_name': backup_target_name,
+                    'backup_file': backup_target_path,
+                    'location': backup_location,
+                    'total_files': len(files_to_backup),
+                    'total_size_formatted': total_size_formatted,
+                    'compressed_size_formatted': final_size_formatted,
+                    'compression_saved': compression_ratio,
+                    'sections': section_stats,
+                    'message': size_info,
+                })
                 
                 # On success, notify completion with backup info
                 backup_info = {
@@ -1285,8 +1644,14 @@ class BackupManager:
                 return True, f"Backup completed successfully. {size_info}"
                 
             except Exception as e:
-                error_msg = f"Error creating backup: {str(e)}"
+                error_msg = self.sanitize_string_encoding(f"Error creating backup: {str(e)}")
+                self.close_progress()
                 self.notify("Backup failed", error_msg, persistent=True)
+                self.set_operation_summary('backup', False, {
+                    'message': error_msg,
+                    'total_files': len(files_to_backup) if 'files_to_backup' in locals() else 0,
+                    'total_size_formatted': total_size_formatted if 'total_size_formatted' in locals() else '',
+                })
                 
                 # Notify backup failure
                 self.email_notifier.notify_backup_failed(backup_type, error_msg)
@@ -1296,8 +1661,12 @@ class BackupManager:
                 return False, error_msg
                 
         except Exception as e:
-            error_msg = f"Error in create_backup: {str(e)}"
+            error_msg = self.sanitize_string_encoding(f"Error in create_backup: {str(e)}")
+            self.close_progress()
             self.notify("Backup failed", error_msg, persistent=True)
+            self.set_operation_summary('backup', False, {
+                'message': error_msg
+            })
             
             # Notify backup failure
             self.email_notifier.notify_backup_failed(backup_type, error_msg)
@@ -1311,27 +1680,41 @@ class BackupManager:
                 self.cleanup_current_session()
                 self.cleanup_resources()
             except Exception as e:
-                xbmc.log(f"Error during final cleanup: {str(e)}", xbmc.LOGERROR)
+                self._log(f"Error during final cleanup: {str(e)}", xbmc.LOGERROR)
     
     def get_all_backups(self):
         """Get list of all available backup files"""
+        self.log_verbose("get_all_backups:start", location_type=self.location_type, backup_dir=self.backup_dir)
         self.update_backup_location()
 
+        self._log(f"BackupManager: get_all_backups location_type={self.location_type} dir={self.backup_dir}", xbmc.LOGINFO)
+
         if self.location_type == 0:  # Local
-            backup_pattern = os.path.join(self.backup_dir, 'backup_*.zip')
-            return sorted(glob.glob(backup_pattern))
+            backup_patterns = [
+                os.path.join(self.backup_dir, 'backup_*.zip'),
+                os.path.join(self.backup_dir, 'libreelec_backup_*.zip'),
+            ]
+            backups = []
+            for pattern in backup_patterns:
+                backups.extend(glob.glob(pattern))
+            backups = list(set(backups))
+            # Newest first for better UX in restore dialogs and status display.
+            return sorted(backups, key=lambda p: os.path.getmtime(p), reverse=True)
         else:  # Remote
             try:
                 # Connect to remote location
                 if not self.connect_remote():
-                    xbmc.log("Failed to connect to remote location for listing backups", xbmc.LOGERROR)
+                    self._log("Failed to connect to remote location for listing backups", xbmc.LOGERROR)
                     return []
 
                 # List files based on remote type
                 files = self.list_remote_files()
 
-                # Filter for backup files (backup_*.zip)
-                backup_files = [f for f in files if f.startswith('backup_') and f.endswith('.zip')]
+                # Filter for backup files (new and legacy naming patterns)
+                backup_files = [
+                    f for f in files
+                    if f.endswith('.zip') and (f.startswith('backup_') or f.startswith('libreelec_backup_'))
+                ]
 
                 # Sort by modification time (newest first) if possible
                 try:
@@ -1365,13 +1748,13 @@ class BackupManager:
                     # Fall back to alphabetical sorting
                     backup_files.sort(reverse=True)
 
-                xbmc.log(f"Found {len(backup_files)} backup files: {backup_files}", xbmc.LOGINFO)
+                self._log(f"Found {len(backup_files)} backup files: {backup_files}", xbmc.LOGINFO)
                 return backup_files
 
             except Exception as e:
-                xbmc.log(f"Error getting remote backups: {str(e)}", xbmc.LOGERROR)
+                self._log(f"Error getting remote backups: {str(e)}", xbmc.LOGERROR)
                 import traceback
-                xbmc.log(f"Traceback: {traceback.format_exc()}", xbmc.LOGERROR)
+                self._log(f"Traceback: {traceback.format_exc()}", xbmc.LOGERROR)
                 return []
             finally:
                 # Disconnect from remote location
@@ -1579,8 +1962,16 @@ class BackupManager:
                 f"Error during cleanup: {str(e)}"
             )
     
+    def is_libreelec(self):
+        """Check if running on LibreELEC system"""
+        return os.path.exists('/flash')
+    
     def mount_flash_rw(self):
-        """Mount /flash in read-write mode"""
+        """Mount /flash in read-write mode (LibreELEC only)"""
+        # Skip on non-LibreELEC systems
+        if not self.is_libreelec():
+            return True
+        
         try:
             subprocess.run(['mount', '-o', 'remount,rw', '/flash'], check=True)
             return True
@@ -1589,7 +1980,11 @@ class BackupManager:
             return False
     
     def mount_flash_ro(self):
-        """Mount /flash back in read-only mode"""
+        """Mount /flash back in read-only mode (LibreELEC only)"""
+        # Skip on non-LibreELEC systems
+        if not self.is_libreelec():
+            return True
+        
         try:
             subprocess.run(['mount', '-o', 'remount,ro', '/flash'], check=True)
             return True
@@ -1599,162 +1994,180 @@ class BackupManager:
     
     def mount_userdata_rw(self):
         """Mount userdata directory in read-write mode"""
+        # Get the actual mount point for userdata
+        userdata_path = self.kodi_userdata
+        
+        # Check if userdata is already writable
+        test_file = os.path.join(userdata_path, '.write_test')
         try:
-            # Get the actual mount point for userdata
-            userdata_path = self.kodi_userdata
-            
-            # Check if userdata is already writable
-            test_file = os.path.join(userdata_path, '.write_test')
-            try:
-                with open(test_file, 'w') as f:
-                    f.write('test')
-                os.remove(test_file)
-                xbmc.log("Userdata directory is already writable", xbmc.LOGINFO)
-                return True
-            except (IOError, PermissionError):
-                xbmc.log("Userdata directory is not writable, attempting to remount", xbmc.LOGINFO)
-            
-            # Find the mount point that contains userdata
+            with open(test_file, 'w') as f:
+                f.write('test')
+            os.remove(test_file)
+            xbmc.log("Userdata directory is already writable", xbmc.LOGINFO)
+            return True
+        except (IOError, PermissionError, OSError):
+            xbmc.log("Userdata directory is not writable - checking if remount is possible", xbmc.LOGINFO)
+        
+        # Only attempt remount on LibreELEC
+        if not self.is_libreelec():
+            xbmc.log("Not on LibreELEC - skipping remount attempt", xbmc.LOGINFO)
+            return True
+        
+        try:
+            # Try to find and remount the mount point
             mount_info = subprocess.run(['mount'], capture_output=True, text=True, check=True)
             mount_lines = mount_info.stdout.splitlines()
             
-            userdata_mount = None
+            # Find longest matching mount point for specificity
+            longest_mount = None
             for line in mount_lines:
                 parts = line.split()
-                if len(parts) >= 3 and userdata_path.startswith(parts[2]):
-                    userdata_mount = parts[2]
-                    break
+                if len(parts) >= 3:
+                    mount_point = parts[2]
+                    if userdata_path.startswith(mount_point):
+                        if longest_mount is None or len(mount_point) > len(longest_mount):
+                            longest_mount = mount_point
             
-            if userdata_mount:
-                xbmc.log(f"Mounting {userdata_mount} as read-write", xbmc.LOGINFO)
-                subprocess.run(['mount', '-o', 'remount,rw', userdata_mount], check=True)
+            if longest_mount and longest_mount != '/':
+                xbmc.log(f"Mounting {longest_mount} as read-write", xbmc.LOGINFO)
+                subprocess.run(['mount', '-o', 'remount,rw', longest_mount], check=True)
                 
-                # Verify it's now writable
+                # Verify it worked
                 try:
                     with open(test_file, 'w') as f:
                         f.write('test')
                     os.remove(test_file)
-                    xbmc.log("Verified userdata directory is now writable", xbmc.LOGINFO)
+                    xbmc.log("Userdata directory verified writable after remount", xbmc.LOGINFO)
                     return True
-                except (IOError, PermissionError):
-                    xbmc.log("Userdata directory is still not writable after remount", xbmc.LOGERROR)
-                    return False
+                except (IOError, PermissionError, OSError):
+                    xbmc.log("Remount didn't help - proceeding anyway", xbmc.LOGWARNING)
+                    return True
             else:
-                xbmc.log(f"Could not find mount point for userdata: {userdata_path}", xbmc.LOGERROR)
-                return False
+                xbmc.log("Could not find appropriate mount point for remount", xbmc.LOGINFO)
+                return True
                 
         except Exception as e:
-            xbmc.log(f"Error mounting userdata as read-write: {str(e)}", xbmc.LOGERROR)
-            return False
+            xbmc.log(f"Remount attempt failed: {str(e)} - proceeding anyway", xbmc.LOGWARNING)
+            return True
             
     def mount_userdata_ro(self):
         """Mount userdata directory back in read-only mode"""
+        # Skip on non-LibreELEC systems
+        if not self.is_libreelec():
+            return True
+        
         try:
-            # Get the actual mount point for userdata
             userdata_path = self.kodi_userdata
-            
-            # Find the mount point that contains userdata
             mount_info = subprocess.run(['mount'], capture_output=True, text=True, check=True)
             mount_lines = mount_info.stdout.splitlines()
             
-            userdata_mount = None
+            # Find longest matching mount point
+            longest_mount = None
             for line in mount_lines:
                 parts = line.split()
-                if len(parts) >= 3 and userdata_path.startswith(parts[2]):
-                    userdata_mount = parts[2]
-                    break
+                if len(parts) >= 3:
+                    mount_point = parts[2]
+                    if userdata_path.startswith(mount_point):
+                        if longest_mount is None or len(mount_point) > len(longest_mount):
+                            longest_mount = mount_point
             
-            if userdata_mount:
-                xbmc.log(f"Remounting {userdata_mount} as read-only", xbmc.LOGINFO)
-                subprocess.run(['mount', '-o', 'remount,ro', userdata_mount], check=True)
+            if longest_mount and longest_mount != '/':
+                subprocess.run(['mount', '-o', 'remount,ro', longest_mount], check=True)
                 return True
-            else:
-                xbmc.log(f"Could not find mount point for userdata: {userdata_path}", xbmc.LOGERROR)
-                return False
+            return True
                 
         except Exception as e:
-            xbmc.log(f"Error mounting userdata as read-only: {str(e)}", xbmc.LOGERROR)
+            xbmc.log(f"Error remounting userdata as read-only: {str(e)}", xbmc.LOGERROR)
             return False
     
     def mount_addons_rw(self):
         """Mount addons directory in read-write mode"""
+        # Get the actual path for addons
+        addons_path = os.path.join(self.kodi_home, 'addons')
+        
+        # Check if addons directory is already writable
+        test_file = os.path.join(addons_path, '.write_test')
         try:
-            # Get the actual path for addons
-            addons_path = os.path.join(self.kodi_home, 'addons')
-            
-            # Check if addons directory is already writable
-            test_file = os.path.join(addons_path, '.write_test')
-            try:
-                os.makedirs(addons_path, exist_ok=True)
-                with open(test_file, 'w') as f:
-                    f.write('test')
-                os.remove(test_file)
-                xbmc.log("Addons directory is already writable", xbmc.LOGINFO)
-                return True
-            except (IOError, PermissionError, OSError):
-                xbmc.log("Addons directory is not writable, attempting to remount", xbmc.LOGINFO)
-            
-            # Find the mount point that contains addons
+            os.makedirs(addons_path, exist_ok=True)
+            with open(test_file, 'w') as f:
+                f.write('test')
+            os.remove(test_file)
+            xbmc.log("Addons directory is already writable", xbmc.LOGINFO)
+            return True
+        except (IOError, PermissionError, OSError):
+            xbmc.log("Addons directory is not writable - checking if remount is possible", xbmc.LOGINFO)
+        
+        # Only attempt remount on LibreELEC
+        if not self.is_libreelec():
+            xbmc.log("Not on LibreELEC - skipping remount attempt", xbmc.LOGINFO)
+            return True
+        
+        try:
+            # Try to find and remount the mount point
             mount_info = subprocess.run(['mount'], capture_output=True, text=True, check=True)
             mount_lines = mount_info.stdout.splitlines()
             
-            addons_mount = None
+            # Find longest matching mount point for specificity
+            longest_mount = None
             for line in mount_lines:
                 parts = line.split()
-                if len(parts) >= 3 and addons_path.startswith(parts[2]):
-                    addons_mount = parts[2]
-                    break
+                if len(parts) >= 3:
+                    mount_point = parts[2]
+                    if addons_path.startswith(mount_point):
+                        if longest_mount is None or len(mount_point) > len(longest_mount):
+                            longest_mount = mount_point
             
-            if addons_mount:
-                xbmc.log(f"Mounting {addons_mount} as read-write", xbmc.LOGINFO)
-                subprocess.run(['mount', '-o', 'remount,rw', addons_mount], check=True)
+            if longest_mount and longest_mount != '/':
+                xbmc.log(f"Mounting {longest_mount} as read-write", xbmc.LOGINFO)
+                subprocess.run(['mount', '-o', 'remount,rw', longest_mount], check=True)
                 
-                # Verify it's now writable
+                # Verify it worked
                 try:
                     os.makedirs(addons_path, exist_ok=True)
                     with open(test_file, 'w') as f:
                         f.write('test')
                     os.remove(test_file)
-                    xbmc.log("Verified addons directory is now writable", xbmc.LOGINFO)
+                    xbmc.log("Addons directory verified writable after remount", xbmc.LOGINFO)
                     return True
                 except (IOError, PermissionError, OSError):
-                    xbmc.log("Addons directory is still not writable after remount", xbmc.LOGERROR)
-                    return False
+                    xbmc.log("Remount didn't help - proceeding anyway", xbmc.LOGWARNING)
+                    return True
             else:
-                xbmc.log(f"Could not find mount point for addons: {addons_path}", xbmc.LOGERROR)
-                return False
+                xbmc.log("Could not find appropriate mount point for remount", xbmc.LOGINFO)
+                return True
                 
         except Exception as e:
-            xbmc.log(f"Error mounting addons as read-write: {str(e)}", xbmc.LOGERROR)
-            return False
+            xbmc.log(f"Remount attempt failed: {str(e)} - proceeding anyway", xbmc.LOGWARNING)
+            return True
             
     def mount_addons_ro(self):
         """Mount addons directory back in read-only mode"""
+        # Skip on non-LibreELEC systems
+        if not self.is_libreelec():
+            return True
+        
         try:
-            # Get the actual path for addons
             addons_path = os.path.join(self.kodi_home, 'addons')
-            
-            # Find the mount point that contains addons
             mount_info = subprocess.run(['mount'], capture_output=True, text=True, check=True)
             mount_lines = mount_info.stdout.splitlines()
             
-            addons_mount = None
+            # Find longest matching mount point
+            longest_mount = None
             for line in mount_lines:
                 parts = line.split()
-                if len(parts) >= 3 and addons_path.startswith(parts[2]):
-                    addons_mount = parts[2]
-                    break
+                if len(parts) >= 3:
+                    mount_point = parts[2]
+                    if addons_path.startswith(mount_point):
+                        if longest_mount is None or len(mount_point) > len(longest_mount):
+                            longest_mount = mount_point
             
-            if addons_mount:
-                xbmc.log(f"Remounting {addons_mount} as read-only", xbmc.LOGINFO)
-                subprocess.run(['mount', '-o', 'remount,ro', addons_mount], check=True)
+            if longest_mount and longest_mount != '/':
+                subprocess.run(['mount', '-o', 'remount,ro', longest_mount], check=True)
                 return True
-            else:
-                xbmc.log(f"Could not find mount point for addons: {addons_path}", xbmc.LOGERROR)
-                return False
+            return True
                 
         except Exception as e:
-            xbmc.log(f"Error mounting addons as read-only: {str(e)}", xbmc.LOGERROR)
+            xbmc.log(f"Error remounting addons as read-only: {str(e)}", xbmc.LOGERROR)
             return False
     
     def restore_file(self, zip_file, file_info, extract_path):
@@ -1764,38 +2177,46 @@ class BackupManager:
             if extract_path == '/flash/config.txt' or extract_path.startswith('/flash/'):
                 xbmc.log(f"Preparing to restore configuration file: {extract_path}", xbmc.LOGINFO)
                 
-                # Mount /flash in read-write mode
-                if not self.mount_flash_rw():
-                    xbmc.log("Failed to mount /flash in read-write mode", xbmc.LOGERROR)
-                    return False, "Failed to mount /flash in read-write mode"
+                # Try to mount /flash in read-write mode (non-blocking)
+                mount_success = self.mount_flash_rw()
+                if mount_success:
+                    xbmc.log("/flash mounted in read-write mode", xbmc.LOGINFO)
+                else:
+                    xbmc.log("Warning: Could not mount /flash as read-write, will try anyway", xbmc.LOGWARNING)
                 
-                xbmc.log("/flash mounted in read-write mode", xbmc.LOGINFO)
                 restore_success = False
                 
                 try:
+                    # Ensure directory exists
+                    os.makedirs(os.path.dirname(extract_path), exist_ok=True)
+                    
                     # Extract the file
-                    zip_file.extract(file_info, '/')
+                    with zip_file.open(file_info) as source, open(extract_path, 'wb') as target:
+                        shutil.copyfileobj(source, target)
                     xbmc.log(f"Configuration file extracted successfully: {extract_path}", xbmc.LOGINFO)
                     
-                    # Ensure proper permissions
-                    os.chmod(extract_path, 0o644)
-                    xbmc.log(f"File permissions set to 644: {extract_path}", xbmc.LOGINFO)
+                    # Try to set permissions (may fail on read-only FS)
+                    try:
+                        os.chmod(extract_path, 0o644)
+                        xbmc.log(f"File permissions set to 644: {extract_path}", xbmc.LOGINFO)
+                    except (IOError, OSError) as perm_err:
+                        xbmc.log(f"Could not set file permissions: {str(perm_err)}", xbmc.LOGWARNING)
                     
                     restore_success = True
                 except Exception as e:
                     xbmc.log(f"Error during configuration file restore: {str(e)}", xbmc.LOGERROR)
                     raise e
                 finally:
-                    # Always try to remount as read-only
-                    xbmc.log("Attempting to remount /flash as read-only", xbmc.LOGINFO)
-                    if not self.mount_flash_ro():
-                        error_msg = "Warning: Failed to remount /flash as read-only"
-                        xbmc.log(error_msg, xbmc.LOGWARNING)
-                        # If restore was successful but remount failed, still warn the user
-                        if restore_success:
-                            self.notify(error_msg)
-                    else:
-                        xbmc.log("/flash remounted as read-only", xbmc.LOGINFO)
+                    # Only try to remount as read-only if we successfully mounted it
+                    if mount_success:
+                        xbmc.log("Attempting to remount /flash as read-only", xbmc.LOGINFO)
+                        if not self.mount_flash_ro():
+                            error_msg = "Warning: Failed to remount /flash as read-only"
+                            xbmc.log(error_msg, xbmc.LOGWARNING)
+                            if restore_success:
+                                self.notify(error_msg)
+                        else:
+                            xbmc.log("/flash remounted as read-only", xbmc.LOGINFO)
                     
                     if not restore_success:
                         return False, f"Failed to restore {os.path.basename(extract_path)}"
@@ -1806,12 +2227,13 @@ class BackupManager:
             elif extract_path.startswith(self.kodi_userdata):
                 xbmc.log(f"Preparing to restore userdata file: {extract_path}", xbmc.LOGINFO)
                 
-                # Mount userdata in read-write mode
-                if not self.mount_userdata_rw():
-                    xbmc.log("Failed to mount userdata in read-write mode", xbmc.LOGERROR)
-                    return False, "Failed to mount userdata in read-write mode"
+                # Try to mount userdata in read-write mode (non-blocking)
+                mount_success = self.mount_userdata_rw()
+                if mount_success:
+                    xbmc.log("Userdata mounted in read-write mode", xbmc.LOGINFO)
+                else:
+                    xbmc.log("Warning: Could not mount userdata as read-write, will try anyway", xbmc.LOGWARNING)
                 
-                xbmc.log("Userdata mounted in read-write mode", xbmc.LOGINFO)
                 restore_success = False
                 
                 try:
@@ -1824,27 +2246,31 @@ class BackupManager:
                     
                     xbmc.log(f"File extracted successfully: {extract_path}", xbmc.LOGINFO)
                     
-                    # Ensure proper permissions (644 for files, 755 for directories)
-                    if os.path.isdir(extract_path):
-                        os.chmod(extract_path, 0o755)
-                    else:
-                        os.chmod(extract_path, 0o644)
+                    # Try to set permissions (may fail on read-only FS)
+                    try:
+                        if os.path.isdir(extract_path):
+                            os.chmod(extract_path, 0o755)
+                        else:
+                            os.chmod(extract_path, 0o644)
+                    except (IOError, OSError) as perm_err:
+                        xbmc.log(f"Could not set file permissions: {str(perm_err)}", xbmc.LOGWARNING)
                     
                     restore_success = True
                 except Exception as e:
                     xbmc.log(f"Error during userdata file restore: {str(e)}", xbmc.LOGERROR)
                     raise e
                 finally:
-                    # Always try to remount as read-only
-                    xbmc.log("Attempting to remount userdata as read-only", xbmc.LOGINFO)
-                    if not self.mount_userdata_ro():
-                        error_msg = "Warning: Failed to remount userdata as read-only"
-                        xbmc.log(error_msg, xbmc.LOGWARNING)
-                        # If restore was successful but remount failed, still warn the user
-                        if restore_success:
-                            self.notify(error_msg)
-                    else:
-                        xbmc.log("Userdata remounted as read-only", xbmc.LOGINFO)
+                    # Only try to remount as read-only if we successfully mounted it
+                    if mount_success:
+                        xbmc.log("Attempting to remount userdata as read-only", xbmc.LOGINFO)
+                        if not self.mount_userdata_ro():
+                            error_msg = "Warning: Failed to remount userdata as read-only"
+                            xbmc.log(error_msg, xbmc.LOGWARNING)
+                            # If restore was successful but remount failed, still warn the user
+                            if restore_success:
+                                self.notify(error_msg)
+                        else:
+                            xbmc.log("Userdata remounted as read-only", xbmc.LOGINFO)
                     
                     if not restore_success:
                         return False, f"Failed to restore {os.path.basename(extract_path)}"
@@ -1855,17 +2281,25 @@ class BackupManager:
             elif extract_path.startswith(os.path.join(self.kodi_home, 'addons')):
                 xbmc.log(f"Preparing to restore addon file: {extract_path}", xbmc.LOGINFO)
                 
-                # Mount addons directory in read-write mode
-                if not self.mount_addons_rw():
-                    xbmc.log("Failed to mount addons directory in read-write mode", xbmc.LOGERROR)
-                    return False, "Failed to mount addons directory in read-write mode"
+                # Try to mount addons directory in read-write mode (non-blocking)
+                mount_success = self.mount_addons_rw()
+                if mount_success:
+                    xbmc.log("Addons directory mounted in read-write mode", xbmc.LOGINFO)
+                else:
+                    xbmc.log("Warning: Could not mount addons directory as read-write, will try anyway", xbmc.LOGWARNING)
                 
-                xbmc.log("Addons directory mounted in read-write mode", xbmc.LOGINFO)
                 restore_success = False
                 
                 try:
-                    # Ensure the directory exists
-                    os.makedirs(os.path.dirname(extract_path), exist_ok=True)
+                    # Ensure the directory exists with proper permissions
+                    parent_dir = os.path.dirname(extract_path)
+                    os.makedirs(parent_dir, exist_ok=True)
+                    
+                    # Try to set write permissions on parent directory
+                    try:
+                        os.chmod(parent_dir, 0o755)
+                    except (IOError, OSError):
+                        pass
                     
                     # Extract the file
                     with zip_file.open(file_info) as source, open(extract_path, 'wb') as target:
@@ -1873,27 +2307,31 @@ class BackupManager:
                     
                     xbmc.log(f"Addon file extracted successfully: {extract_path}", xbmc.LOGINFO)
                     
-                    # Ensure proper permissions (644 for files, 755 for directories)
-                    if os.path.isdir(extract_path):
-                        os.chmod(extract_path, 0o755)
-                    else:
-                        os.chmod(extract_path, 0o644)
+                    # Try to set proper permissions
+                    try:
+                        if os.path.isdir(extract_path):
+                            os.chmod(extract_path, 0o755)
+                        else:
+                            os.chmod(extract_path, 0o644)
+                    except (IOError, OSError) as perm_err:
+                        xbmc.log(f"Could not set file permissions: {str(perm_err)}", xbmc.LOGWARNING)
                     
                     restore_success = True
                 except Exception as e:
                     xbmc.log(f"Error during addon file restore: {str(e)}", xbmc.LOGERROR)
                     raise e
                 finally:
-                    # Always try to remount as read-only
-                    xbmc.log("Attempting to remount addons directory as read-only", xbmc.LOGINFO)
-                    if not self.mount_addons_ro():
-                        error_msg = "Warning: Failed to remount addons directory as read-only"
-                        xbmc.log(error_msg, xbmc.LOGWARNING)
-                        # If restore was successful but remount failed, still warn the user
-                        if restore_success:
-                            self.notify(error_msg)
-                    else:
-                        xbmc.log("Addons directory remounted as read-only", xbmc.LOGINFO)
+                    # Only try to remount as read-only if we successfully mounted it
+                    if mount_success:
+                        xbmc.log("Attempting to remount addons directory as read-only", xbmc.LOGINFO)
+                        if not self.mount_addons_ro():
+                            error_msg = "Warning: Failed to remount addons directory as read-only"
+                            xbmc.log(error_msg, xbmc.LOGWARNING)
+                            # If restore was successful but remount failed, still warn the user
+                            if restore_success:
+                                self.notify(error_msg)
+                        else:
+                            xbmc.log("Addons directory remounted as read-only", xbmc.LOGINFO)
                     
                     if not restore_success:
                         return False, f"Failed to restore {os.path.basename(extract_path)}"
@@ -1916,6 +2354,14 @@ class BackupManager:
     
     def restore_backup(self, backup_file=None):
         """Restore a backup from a file"""
+        self.log_verbose(
+            "restore_backup:start",
+            backup_file=backup_file,
+            location_type=self.location_type,
+            backup_dir=self.backup_dir,
+            remote_type=getattr(self, "remote_type", None),
+            remote_path=getattr(self, "remote_path", None),
+        )
         try:
             if backup_file is None:
                 # Get list of available backups
@@ -1935,16 +2381,13 @@ class BackupManager:
                         else:
                             backup_name = os.path.basename(backup)
                         
-                        # Get backup date and info
-                        backup_date = self.get_backup_date(backup)
-                        backup_items = self.get_backup_info(backup)
+                        # Get backup date
+                        backup_date = self.format_backup_date(backup)
                         backup_size = os.path.getsize(backup) if os.path.exists(backup) else 0
                         backup_size_formatted = self.format_size(backup_size)
                         
                         # Create display string
                         display_name = f"{backup_date} - {backup_name} ({backup_size_formatted})"
-                        if backup_items:
-                            display_name += f" [{', '.join(backup_items)}]"
                         
                         backup_options.append((display_name, backup))
                     except Exception as e:
@@ -2039,8 +2482,10 @@ class BackupManager:
             # Get backup size for display
             backup_size = os.path.getsize(backup_file)
             backup_size_formatted = self.format_size(backup_size)
-            
-            self.notify(self.addon.getLocalizedString(32103), f"Size: {backup_size_formatted}")  # Starting restore...
+
+            # Create and initialize restore progress dialog
+            self.notify(self.addon.getLocalizedString(32083), f"Size: {backup_size_formatted}", progress=True)
+            self.update_progress(0, self.addon.getLocalizedString(32083), f"Size: {backup_size_formatted}")
             
             with zipfile.ZipFile(backup_file, 'r') as zipf:
                 # Read manifest
@@ -2054,6 +2499,11 @@ class BackupManager:
                 total_files = len(files_to_restore)
                 current_file = 0
                 
+                skipped_files = []
+                restored_files = 0
+                restored_size = 0
+                restore_section_stats = {}
+
                 # Restore each file
                 for file_info in files_to_restore:
                     current_file += 1
@@ -2061,12 +2511,20 @@ class BackupManager:
                     progress = min(int((current_file / total_files) * 100), 100)
                     
                     try:
+                        normalized_name = file_info.filename.replace('\\\\', '/')
+
+                        # Skip VCS metadata paths to avoid permission issues on restored addons.
+                        if '/.git/' in normalized_name or normalized_name.startswith('.git/'):
+                            skipped_files.append(file_info.filename)
+                            continue
+
                         # Show progress with file info and size
                         file_size = file_info.file_size
                         file_size_formatted = self.format_size(file_size)
                         progress_info = f"{file_info.filename} ({file_size_formatted})"
-                        
-                        self.notify(f"{self.addon.getLocalizedString(32103)} ({progress}%)", progress_info)
+
+                        # Keep progress dialog percent in sync with restore progress
+                        self.update_progress(progress, self.addon.getLocalizedString(32083), progress_info)
                         
                         # Get the full path where this file should be restored
                         if file_info.filename.startswith('userdata/'):
@@ -2089,21 +2547,59 @@ class BackupManager:
                         success, error = self.restore_file(zipf, file_info, extract_path)
                         if not success:
                             raise Exception(f"Failed to restore {file_info.filename}: {error}")
+
+                        restored_files += 1
+                        restored_size += file_size
+                        section_key = file_info.filename.split('/')[0] if '/' in file_info.filename else 'root'
+                        section_bucket = restore_section_stats.setdefault(section_key, {'files': 0, 'bytes': 0})
+                        section_bucket['files'] += 1
+                        section_bucket['bytes'] += file_size
                             
                     except Exception as e:
-                        xbmc.log(f"Error restoring {file_info.filename}: {str(e)}", xbmc.LOGERROR)
-                        self.notify(f"Error restoring", file_info.filename)
-                        return False, str(e)
+                        error_text = str(e)
+                        error_lower = error_text.lower()
+
+                        # Continue restore on non-critical per-file issues.
+                        if 'permission denied' in error_lower or 'errno 13' in error_lower or 'file name too long' in error_lower or 'errno 36' in error_lower:
+                            skipped_files.append(file_info.filename)
+                            xbmc.log(f"Skipping file during restore due to non-critical error: {file_info.filename} ({error_text})", xbmc.LOGWARNING)
+                            continue
+
+                        xbmc.log(f"Error restoring {file_info.filename}: {error_text}", xbmc.LOGERROR)
+                        return False, error_text
             
-            self.notify(self.addon.getLocalizedString(32104), f"Size: {backup_size_formatted}")  # Restore completed successfully
-            return True, "Backup restored successfully"
+            self.update_progress(100, self.addon.getLocalizedString(32084), f"Size: {backup_size_formatted}")
+
+            restore_message = "Backup restored successfully"
+            if skipped_files:
+                restore_message = f"Backup restored with warnings (skipped {len(skipped_files)} files)"
+
+            self.set_operation_summary('restore', True, {
+                'backup_file': os.path.basename(backup_file),
+                'total_files': total_files,
+                'restored_files': restored_files,
+                'skipped_files': len(skipped_files),
+                'total_size_formatted': backup_size_formatted,
+                'compressed_size_formatted': self.format_size(restored_size),
+                'sections': restore_section_stats,
+                'skipped_examples': skipped_files[:10],
+                'message': restore_message,
+            })
+
+            if skipped_files:
+                return True, restore_message
+            return True, restore_message
             
         except Exception as e:
             error_msg = f"Error restoring backup: {str(e)}"
             xbmc.log(error_msg, xbmc.LOGERROR)
-            self.notify(self.addon.getLocalizedString(32105), str(e))  # Restore failed
+            self.set_operation_summary('restore', False, {
+                'backup_file': os.path.basename(backup_file) if backup_file else 'Unknown',
+                'message': str(e),
+            })
             return False, error_msg
         finally:
+            self.close_progress()
             # Clean up temporary files after successful restore
             self.cleanup_current_session()
 
@@ -2148,13 +2644,23 @@ class BackupManager:
             return False
 
     def get_last_successful_backup(self):
-        """Retrieve the date and time of the last successful backup from the last backup file."""
-        last_backup_file = "/storage/.kodi/userdata/addon_data/service.libreelec.backupper/last_backup.txt"
+        """Retrieve the most recent backup time from state file or available backups."""
+        profile_dir = xbmcvfs.translatePath(self.addon.getAddonInfo('profile'))
+        last_backup_file = os.path.join(profile_dir, 'last_backup.txt')
         try:
             if os.path.exists(last_backup_file):
                 with open(last_backup_file, 'r') as f:
                     last_backup = f.read().strip()
                 return last_backup if last_backup else "No backup yet"
+
+            # Fallback: infer from existing backup files when state file is missing.
+            backups = self.get_all_backups()
+            if backups:
+                if self.location_type == 0:
+                    latest_backup = max(backups, key=lambda p: os.path.getmtime(p) if os.path.exists(p) else 0)
+                    return self.format_backup_date(latest_backup)
+                return self.format_backup_date(backups[0])
+
             return "No backup yet"
         except Exception as e:
             xbmc.log(f"{ADDON_ID}: Error reading last backup time: {str(e)}", xbmc.LOGERROR)
