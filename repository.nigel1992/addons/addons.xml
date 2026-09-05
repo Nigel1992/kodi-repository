@@ -61,7 +61,7 @@
 			</assets>
 		</extension>
 	</addon>
-	<addon id="repository.nigel1992" name="Nigel1992 Repository" version="1.0.2" provider-name="Nigel1992">
+	<addon id="repository.nigel1992" name="Nigel1992 Repository" version="1.0.3" provider-name="Nigel1992">
 		<extension point="xbmc.addon.repository" name="Nigel1992 Repository">
 			<dir>
 				<info compressed="false">https://raw.githubusercontent.com/Nigel1992/kodi-repository/master/repository.nigel1992/addons/addons.xml</info>
