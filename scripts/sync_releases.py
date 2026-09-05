@@ -12,10 +12,19 @@ import zipfile
 
 ROOT = Path(__file__).resolve().parents[1]
 ADDONS = ROOT / 'repository.nigel1992' / 'addons'
-SOURCES = {
-    'plugin.video.videoland.nl': 'Nigel1992/Videoland-Kodi-Addon',
-    'plugin.video.nlziet': 'Nigel1992/NLZiet-Kodi-Addon',
-}
+def load_sources(path=ROOT / 'addon-sources.json'):
+    sources = json.loads(path.read_text())
+    if not isinstance(sources, dict) or not sources:
+        raise ValueError('addon-sources.json must map addon IDs to GitHub repository URLs')
+    result = {}
+    for addon_id, url in sources.items():
+        if not re.fullmatch(r'[A-Za-z0-9_]+(?:[.][A-Za-z0-9_-]+)+', addon_id):
+            raise ValueError(f'Invalid addon ID: {addon_id}')
+        if not isinstance(url, str) or not re.fullmatch(r'https://github[.]com/[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+/?', url):
+            raise ValueError(f'Expected a GitHub repository URL for {addon_id}')
+        result[addon_id] = url.removeprefix('https://github.com/').rstrip('/').removesuffix('.git')
+    return result
+
 
 
 def download(url, authenticated=False):
@@ -82,5 +91,5 @@ def sync(addon_id, repository):
 
 
 if __name__ == '__main__':
-    for addon_id, repository in SOURCES.items():
+    for addon_id, repository in load_sources().items():
         sync(addon_id, repository)

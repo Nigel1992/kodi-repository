@@ -5,6 +5,7 @@ on:
     paths:
       - 'repository.nigel1992/**'
       - 'scripts/sync_releases.py'
+      - 'addon-sources.json'
       - 'tests/**'
       - '.github/workflows/update_repo.yml'
   schedule:

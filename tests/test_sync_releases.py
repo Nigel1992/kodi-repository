@@ -1,6 +1,8 @@
 import importlib.util
 import io
 import unittest
+import tempfile
+import json
 import zipfile
 from pathlib import Path
 
@@ -9,6 +11,16 @@ sync = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(sync)
 
 class ReleaseValidation(unittest.TestCase):
+    def test_source_configuration(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / 'sources.json'
+            path.write_text(json.dumps({'plugin.video.test': 'https://github.com/owner/repo'}))
+            self.assertEqual(sync.load_sources(path), {'plugin.video.test': 'owner/repo'})
+            for config in ({'../outside': 'https://github.com/owner/repo'}, {'plugin.video.test': 'https://example.com/owner/repo'}, []):
+                path.write_text(json.dumps(config))
+                with self.assertRaises(ValueError):
+                    sync.load_sources(path)
+
     def archive(self, addon_id='plugin.video.test', extra=None):
         data = io.BytesIO()
         with zipfile.ZipFile(data, 'w') as z:

@@ -103,13 +103,14 @@ For support, file an issue on GitHub or contact via the Kodi forums.
 
 
 
-## Automatic Videoland and NLZIET releases
+## Automatic addon releases
 
 The **Update Repository** GitHub Actions workflow checks hourly (at minute 17)
 for the latest stable GitHub release from:
 
 - [Videoland](https://github.com/Nigel1992/Videoland-Kodi-Addon/releases)
 - [NLZIET](https://github.com/Nigel1992/NLZiet-Kodi-Addon/releases)
+- [XCUI Streams IPTV](https://github.com/Nigel1992/plugin.video.iptvxc/releases)
 
 It mirrors the published installable ZIP unchanged, validates the addon ID and
 version, imports its metadata and artwork, and regenerates `addons.xml` and its
@@ -125,3 +126,21 @@ can be disabled after 60 days without repository activity. Check the Actions pag
 if updates stop; you can also run **Update Repository → Run workflow** manually.
 Kodi discovers updates on its next repository check; enable automatic addon updates
 to install them automatically.
+
+### Add another source repository
+
+Edit [`addon-sources.json`](addon-sources.json) and add an entry mapping the addon's
+ID (from its `addon.xml`) to its GitHub repository URL. For example:
+
+```json
+"plugin.video.example": "https://github.com/Nigel1992/example-addon"
+```
+
+Separate entries with commas to keep the file valid JSON. Commit to `master`;
+the workflow runs immediately and then checks that repository hourly too. No
+workflow or Python changes, source-repository export workflow, or PAT are needed.
+The repository must be public and publish a stable release with an installable
+`<addon-id>-<version>.zip` asset. The ZIP must contain a top-level `<addon-id>/`
+folder with `addon.xml` and the referenced artwork. Publishing a release without
+that asset fails validation; finish uploading it and rerun the workflow.
+Removing an entry stops future syncing but keeps previously imported packages.
