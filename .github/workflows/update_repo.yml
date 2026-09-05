@@ -4,14 +4,25 @@ on:
   push:
     paths:
       - 'repository.nigel1992/**'
+      - 'scripts/sync_releases.py'
+      - 'tests/**'
+      - '.github/workflows/update_repo.yml'
+  schedule:
+    - cron: '17 * * * *'
   workflow_dispatch: # This enables the manual button
 
 permissions:
   contents: write # Essential for the 'git push' to work
 
+concurrency:
+  group: update-kodi-repository
+  cancel-in-progress: false
+
 jobs:
   update-repo:
+    if: github.ref == 'refs/heads/master'
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -23,6 +34,14 @@ jobs:
         with:
           python-version: '3.9'
           
+      - name: Test release validation
+        run: python -m unittest discover -s tests -v
+
+      - name: Sync stable addon releases
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python scripts/sync_releases.py
+
       - name: Generate repository files
         run: |
           cd repository.nigel1992

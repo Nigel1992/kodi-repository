@@ -1,102 +1,99 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <addons>
 	<addon id="plugin.video.iptvxc" name="[B][COLOR red]XCUI Streams[/COLOR][/B]" version="3.8.8" provider-name="Nigel1992">
-		
-    
 		<requires>
-			
-        
 			<import addon="xbmc.python" version="3.0.0"/>
-			
-    
 		</requires>
-		
-    
 		<extension point="xbmc.python.pluginsource" library="default.py">
-			
-        
 			<provides>video</provides>
-			
-    
 		</extension>
-		
-    
 		<extension point="xbmc.addon.metadata">
-			
-        
 			<summary lang="en">[COLOR red]An IPTV addon for Kodi 21.[/COLOR]</summary>
-			
-        
 			<description lang="en">[COLOR red]This addon does not supply illegal content.[/COLOR]</description>
-			
-        
 			<language>en</language>
-			
-        
 			<platform>all</platform>
-			
-        
 			<assets>
-				
-            
 				<icon>icon.png</icon>
-				
-            
 				<fanart>fanart.jpg</fanart>
-				
-        
 			</assets>
-			
-    
 		</extension>
-		
-
+	</addon>
+	<addon id="plugin.video.nlziet" name="NLZiet" version="1.0.3" provider-name="Nigel1992">
+		<requires>
+			<import addon="xbmc.python" version="3.0.0"/>
+			<import addon="script.module.requests" version="2.31.0"/>
+			<import addon="script.module.backports.zoneinfo" version="0.2.1"/>
+			<import addon="script.module.tzdata" version="0.2.1"/>
+			<import addon="script.module.inputstreamhelper" version="0.6.0"/>
+			<import addon="inputstream.adaptive" version="2.6.18"/>
+		</requires>
+		<extension point="xbmc.python.pluginsource" library="default.py">
+			<provides>video</provides>
+		</extension>
+		<extension point="xbmc.service" library="service.py"/>
+		<extension point="xbmc.addon.metadata">
+			<summary lang="nl">NLZiet streaming addon</summary>
+			<description lang="nl">Stream NLZiet content via de service API (vereist account)</description>
+			<assets>
+				<icon>icon.png</icon>
+				<fanart>resources/media/background.jpg</fanart>
+			</assets>
+		</extension>
+	</addon>
+	<addon id="plugin.video.videoland.nl" name="Videoland" version="1.0.0" provider-name="Nigel1992">
+		<requires>
+			<import addon="xbmc.python" version="3.0.1"/>
+			<import addon="inputstream.adaptive" version="21.5.0" optional="true"/>
+		</requires>
+		<extension point="xbmc.python.pluginsource" library="addon.py">
+			<provides>video</provides>
+		</extension>
+		<extension point="xbmc.addon.metadata">
+			<summary lang="en_GB">Unofficial Videoland client</summary>
+			<summary lang="nl_NL">Onofficiële Videoland-client</summary>
+			<description lang="en_GB">Browse and play movies, series, and programs using your own Videoland subscription.</description>
+			<description lang="nl_NL">Blader en speel films, series en programma's met je eigen Videoland-abonnement.</description>
+			<platform>all</platform>
+			<license>CC-BY-NC-4.0</license>
+			<assets>
+				<icon>icon.png</icon>
+				<fanart>resources/media/background.jpg</fanart>
+			</assets>
+		</extension>
+	</addon>
+	<addon id="repository.nigel1992" name="Nigel1992 Repository" version="1.0.2" provider-name="Nigel1992">
+		<extension point="xbmc.addon.repository" name="Nigel1992 Repository">
+			<dir>
+				<info compressed="false">https://raw.githubusercontent.com/Nigel1992/kodi-repository/master/repository.nigel1992/addons/addons.xml</info>
+				<checksum>https://raw.githubusercontent.com/Nigel1992/kodi-repository/master/repository.nigel1992/addons/addons.xml.md5</checksum>
+				<datadir zip="true">https://raw.githubusercontent.com/Nigel1992/kodi-repository/master/repository.nigel1992/addons</datadir>
+			</dir>
+		</extension>
+		<extension point="xbmc.addon.metadata">
+			<summary>Repository for Nigel1992's Kodi addons</summary>
+			<description>This repository contains Nigel1992's collection of Kodi addons</description>
+			<platform>all</platform>
+			<assets>
+				<icon>icon.png</icon>
+				<fanart>fanart.jpg</fanart>
+			</assets>
+		</extension>
 	</addon>
 	<addon id="service.libreelec.backupper" name="LibreELEC Backupper" version="1.5.0" provider-name="Nigel">
-		
-    
 		<requires>
-			
-        
 			<import addon="xbmc.python" version="3.0.0"/>
-			
-        
 			<import addon="script.module.requests" version="2.22.0"/>
-			
-    
 		</requires>
-		
-    
 		<extension point="xbmc.service" library="service.py"/>
-		
-    
 		<extension point="xbmc.python.script" library="addon.py"/>
-		
-    
 		<extension point="xbmc.addon.metadata">
-			
-        
 			<platform>all</platform>
-			
-        
 			<summary lang="en_GB">Backup and restore LibreELEC system settings and configurations</summary>
-			
-        
 			<description lang="en_GB">Automatically backup and restore your LibreELEC system settings, configurations, and addons. Supports local and remote storage locations with smart backup rotation.</description>
-			
-        
 			<disclaimer lang="en_GB">This addon is not affiliated with LibreELEC or Kodi.</disclaimer>
-			
-        
 			<license>GPL-2.0-or-later</license>
-			
-        
 			<forum>https://forum.libreelec.tv/</forum>
-			
-        
 			<source>https://github.com/Nigel1992/service.libreelec.backupper</source>
-			
-                
 			<news>v1.5.0 (2026-04-12) - FEATURE RELEASE
 - Added custom dashboard and backup browser windows with skin XML layouts.
 - New custom settings/help details for better guidance.
@@ -110,80 +107,12 @@
 - Switched all popups to custom GUI dialogs with fallback support.
 - Fixed Credits display and settings navigation edge cases.
 - Automatic mounting/unmounting of addons directory during restore.</news>
-			
-        
 			<assets>
-				
-            
 				<icon>resources/icon.png</icon>
-				
-            
 				<fanart>resources/fanart.jpg</fanart>
-				
-            
 				<screenshot>resources/screenshot-01.jpg</screenshot>
-				
-            
 				<screenshot>resources/screenshot-02.jpg</screenshot>
-				
-        
 			</assets>
-			
-    
 		</extension>
-		
-
-	</addon>
-	<addon id="repository.nigel1992" name="Nigel1992 Repository" version="1.0.2" provider-name="Nigel1992">
-		
-    
-		<extension point="xbmc.addon.repository" name="Nigel1992 Repository">
-			
-        
-			<dir>
-				
-            
-				<info compressed="false">https://raw.githubusercontent.com/Nigel1992/kodi-repository/master/repository.nigel1992/addons/addons.xml</info>
-				
-            
-				<checksum>https://raw.githubusercontent.com/Nigel1992/kodi-repository/master/repository.nigel1992/addons/addons.xml.md5</checksum>
-				
-            
-				<datadir zip="true">https://raw.githubusercontent.com/Nigel1992/kodi-repository/master/repository.nigel1992/addons</datadir>
-				
-        
-			</dir>
-			
-    
-		</extension>
-		
-    
-		<extension point="xbmc.addon.metadata">
-			
-        
-			<summary>Repository for Nigel1992's Kodi addons</summary>
-			
-        
-			<description>This repository contains Nigel1992's collection of Kodi addons</description>
-			
-        
-			<platform>all</platform>
-			
-        
-			<assets>
-				
-            
-				<icon>icon.png</icon>
-				
-            
-				<fanart>fanart.jpg</fanart>
-				
-        
-			</assets>
-			
-    
-		</extension>
-		
-
 	</addon>
 </addons>

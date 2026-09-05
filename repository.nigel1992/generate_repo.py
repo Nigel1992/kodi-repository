@@ -15,7 +15,7 @@ def make_pretty_xml(elem):
     """Return a pretty-printed XML string"""
     rough_string = ET.tostring(elem, 'utf-8')
     reparsed = minidom.parseString(rough_string)
-    return reparsed.toprettyxml(indent="\t")
+    return "\n".join(line.rstrip() for line in reparsed.toprettyxml(indent="\t").splitlines() if line.strip()) + "\n"
 
 def fix_addon_structure():
     """
@@ -31,6 +31,10 @@ def fix_addon_structure():
         if not os.path.isdir(addon_path) or addon_name == "repository.nigel1992":
             continue
         
+        # Published release ZIPs are mirrored verbatim, never repackaged.
+        if os.path.exists(os.path.join(addon_path, ".release.json")):
+            continue
+
         # Check if addon.xml exists
         addon_xml_path = os.path.join(addon_path, "addon.xml")
         if not os.path.exists(addon_xml_path):
@@ -89,6 +93,10 @@ def create_addon_zips():
         if not os.path.isdir(addon_path) or addon_name == "repository.nigel1992":
             continue
         
+        # Published release ZIPs are mirrored verbatim, never repackaged.
+        if os.path.exists(os.path.join(addon_path, ".release.json")):
+            continue
+
         # Check if addon.xml exists
         addon_xml_path = os.path.join(addon_path, "addon.xml")
         if not os.path.exists(addon_xml_path):
@@ -111,11 +119,10 @@ def create_addon_zips():
             zip_filename = f"{addon_name}-{version}.zip"
             zip_path = os.path.join(addon_path, zip_filename)
             
-            # Delete existing zip if it exists
             if os.path.exists(zip_path):
-                os.remove(zip_path)
-                print(f"  Removed existing zip file: {zip_filename}")
-            
+                print(f"  Keeping published package: {zip_filename}")
+                continue
+
             print(f"  Creating zip file: {zip_filename}")
             
             with zipfile.ZipFile(zip_path, 'w', zipfile.ZIP_DEFLATED) as zipf:
@@ -156,7 +163,7 @@ def generate_addons_xml():
     addons = ET.Element("addons")
     
     # Loop through each addon
-    for addon in os.listdir("addons"):
+    for addon in sorted(os.listdir("addons")):
         addon_path = os.path.join("addons", addon)
         if not os.path.isdir(addon_path):
             continue

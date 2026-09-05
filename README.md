@@ -102,3 +102,26 @@ For support, file an issue on GitHub or contact via the Kodi forums.
 ---
 
 
+
+## Automatic Videoland and NLZIET releases
+
+The **Update Repository** GitHub Actions workflow checks hourly (at minute 17)
+for the latest stable GitHub release from:
+
+- [Videoland](https://github.com/Nigel1992/Videoland-Kodi-Addon/releases)
+- [NLZIET](https://github.com/Nigel1992/NLZiet-Kodi-Addon/releases)
+
+It mirrors the published installable ZIP unchanged, validates the addon ID and
+version, imports its metadata and artwork, and regenerates `addons.xml` and its
+MD5 checksum. Existing ZIP versions are retained. Unchanged releases produce no
+commit. Failed downloads or validation stop the workflow before anything is pushed.
+No additional secret is required: the workflow uses its built-in GitHub token.
+
+To publish an update, increase the version in the source addon’s `addon.xml` and
+publish a stable GitHub release with exactly one matching asset named
+`<addon-id>-<version>.zip`. Drafts, prereleases and source-only commits are not
+imported. GitHub scheduled runs can be delayed and schedules in public repositories
+can be disabled after 60 days without repository activity. Check the Actions page
+if updates stop; you can also run **Update Repository → Run workflow** manually.
+Kodi discovers updates on its next repository check; enable automatic addon updates
+to install them automatically.
