@@ -9,7 +9,7 @@ on:
       - 'tests/**'
       - '.github/workflows/update_repo.yml'
   schedule:
-    - cron: '17 * * * *'
+  - cron: '*/15 * * * *'
   workflow_dispatch: # This enables the manual button
 
 permissions:
