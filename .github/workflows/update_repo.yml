@@ -1,3 +1,4 @@
+```yaml
 name: Update Repository
 
 on:
@@ -8,12 +9,16 @@ on:
       - 'addon-sources.json'
       - 'tests/**'
       - '.github/workflows/update_repo.yml'
+
+  # Check for new addon releases every 15 minutes
   schedule:
-  - cron: '*/15 * * * *'
-  workflow_dispatch: # This enables the manual button
+    - cron: '*/15 * * * *'
+
+  # Enables the manual "Run workflow" button
+  workflow_dispatch:
 
 permissions:
-  contents: write # Essential for the 'git push' to work
+  contents: write
 
 concurrency:
   group: update-kodi-repository
@@ -24,17 +29,21 @@ jobs:
     if: github.ref == 'refs/heads/master'
     runs-on: ubuntu-latest
     timeout-minutes: 15
+
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
+      - name: Checkout repository
+        uses: actions/checkout@v5
         with:
           fetch-depth: 0
 
       - name: Set up Python
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v6
         with:
-          python-version: '3.9'
-          
+          python-version: '3.13'
+
+      - name: Show Python version
+        run: python --version
+
       - name: Test release validation
         run: python -m unittest discover -s tests -v
 
@@ -44,21 +53,29 @@ jobs:
         run: python scripts/sync_releases.py
 
       - name: Generate repository files
-        run: |
-          cd repository.nigel1992
-          python generate_repo.py
-          
+        working-directory: repository.nigel1992
+        run: python generate_repo.py
+
       - name: Commit and push changes
+        shell: bash
         run: |
-          git config --local user.email "action@github.com"
-          git config --local user.name "GitHub Action"
-          
-          # Force add ignored files like .zip
+          set -e
+
+          git config --local user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git config --local user.name "github-actions[bot]"
+
+          # Force-add generated repository files, including ignored ZIP files
           git add -f repository.nigel1992/
-          
+
           if git diff --staged --quiet; then
-            echo "No changes to commit"
-          else
-            git commit -m "Auto-update addon files (forced)"
-            git push
+            echo "No repository changes detected."
+            exit 0
           fi
+
+          git commit -m "Auto-update addon repository"
+
+          # Pull any commits that appeared while this workflow was running
+          git pull --rebase origin "${GITHUB_REF_NAME}"
+
+          git push origin "HEAD:${GITHUB_REF_NAME}"
+```
