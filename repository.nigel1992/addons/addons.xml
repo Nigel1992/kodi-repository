@@ -1,5 +1,283 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <addons>
+	<addon id="plugin.audio.resonance" version="1.0.0" name="Resonance" provider-name="Nigel1992">
+		<requires>
+			<import addon="xbmc.python" version="3.0.0"/>
+			<import addon="xbmc.addon" version="18.9.701"/>
+			<import addon="script.module.certifi" version="2023.5.7"/>
+			<import addon="script.module.chardet" version="5.1.0"/>
+			<import addon="script.module.idna" version="3.4.0"/>
+			<import addon="script.module.requests" version="2.31.0"/>
+			<import addon="script.module.urllib3" version="1.26.16"/>
+		</requires>
+		<extension point="xbmc.python.pluginsource" library="plugin.py">
+			<provides>audio</provides>
+			<reuselanguageinvoker>true</reuselanguageinvoker>
+		</extension>
+		<extension library="service.py" point="xbmc.service"/>
+		<extension point="xbmc.addon.metadata">
+			<platform>all</platform>
+			<summary lang="en_GB">Resonance: a minimal Spotify music browser and player for Kodi</summary>
+			<summary lang="de_DE">Spotify-Premium-Musik in Kodi hören: Resonance-Plugin (Spotty/librespot), getestet auf LibreELEC/Raspberry Pi</summary>
+			<description lang="en_GB">Resonance is a lightweight Spotify music browser for Kodi focused on playlists, music search, albums, artists and playback. It uses Spotify account data when available and wolfX for public catalogue fallback, with persistent caching and shared rate-limit handling. Bundled Spotty authentication and audio transport are retained from the upstream add-on. Tested on LibreELEC/Raspberry Pi. Spotify Premium is required. Podcasts, audiobooks and library editing are not included. Rebranded as Resonance; based on work by glk1001 and herberto08.</description>
+			<description lang="de_DE">Die Weiterentwicklung dieses Addons unter Einbeziehung von ChatGPT-KI-Unterstützung basiert auf den Grundlagen und dem Quellcode von plugin.audio.spotify v1.3.14 von glk1001. Ermöglicht die Nutzung eines Spotify-Premium-Kontos, um Spotify mit Kodi zu verbinden und Musik über Kodi wiederzugeben.</description>
+			<disclaimer lang="en_GB">This product uses the SPOTIFY WEB API but is not endorsed, certified or otherwise approved in any way by Spotify. Spotify is the registered trademark of Spotify AB.</disclaimer>
+			<disclaimer lang="de_DE">Dieses Produkt verwendet die SPOTIFY WEB API, wird jedoch in keiner Weise von Spotify unterstützt, zertifiziert oder anderweitig genehmigt. Spotify ist eine eingetragene Marke von Spotify AB.</disclaimer>
+			<source>https://github.com/Nigel1992/plugin.audio.resonance</source>
+			<website>https://github.com/Nigel1992/plugin.audio.resonance</website>
+			<news>[B]1.0.0[/B]
+- Rebranded as Resonance (addon id plugin.audio.resonance). Existing login, settings, cache and playback state are migrated automatically on first start.
+- New minimal music browser, persistent catalogue cache and loopback audio service.
+- Public catalogue fallback, explicit pagination and provider cooldowns.
+- Per-track album art in playlist and search listings.
+- Clear messages for tracks that Spotify marks as unavailable instead of a long silent stall.
+- Preserves existing credentials and imports previously loaded playlists.
+- See REBUILD.md for scope, verification and current limitations.
+[B]1.2.21[/B]
+- Credits clarified: this fork is mainly based on source/release work from https://github.com/herberto08/plugin.audio.spotify2-releases.
+- Repository focus clarified: this fork is made and tested primarily for LibreELEC on Raspberry Pi; other Kodi platforms may work but should be treated as experimental unless independently validated.
+- Promotes the tested v1.2.20.x development line into the next stable release candidate.
+- Improves Spotify Web API compatibility for artist browsing with endpoint-specific limits, pagination, albums, singles and compilations.
+- Improves My Music &gt; Artists cache/fallback handling and cross-platform Diagnostics reporting.
+- Album context-menu Play from artist/album views now uses the proven playlist playback workflow, including full-screen entry and active-track focus.
+- Adds chained automatic continuation from one album to the next album in the current artist listing, using the existing playlist sequence, prefetch and foreground hand-off engine.
+- Successor albums are prepared cache-first and reuse prefetched audio/queue data for fast transitions.
+- Uses compact cycle-free album metadata to reduce cache payloads and avoid serialization failures.
+- Hardens retained Kodi foreground anchors so chained album transitions keep the correct GUI listing and focused track without restarting an earlier album.
+- Keeps the mature v1.2.19.1 playlist browse/play/focus/full-screen core unchanged.
+[B]1.2.20.18[/B]
+- Fixes GUI focus and chained automatic album transitions after v1.2.20.17 stale-anchor protection.
+- Leaves the first real A-to-B foreground hand-off entirely to the unchanged stable v1.2.19.1 path.
+- The virtual-album stale-anchor guard now runs only after that live hand-off transaction is no longer pending.
+- A later retained album-A context URL is rebound to sequence-current album B even during the terminal gap where playback/session state is already deactivated but B-to-C advance is pending.
+- After such a local rebound, VisiblePlaylistState restores the native Kodi anchor as A while keeping rendered=B, matching the stable chained-playlist model used by focus and subsequent hand-offs.
+- Retains v1.2.20.16/.17 cache, prefetch and cycle-free album metadata optimizations.
+[B]1.2.20.17[/B]
+- Fixes a virtual-album stale-anchor replay that could jump back to the previous album after a successful automatic next-album transition.
+- Keeps the stable v1.2.19.1 foreground hand-off code unchanged.
+- Before playlist dispatch, Resonance now recognizes only the retained virtual-album context route whose Kodi FolderPath still points to album A while the active music session and parent sequence have already advanced to the immediate successor album B.
+- In that exact retained-anchor case, contextplay/playsource are consumed and the invocation is rebound locally to active album B without restarting either queue.
+- Genuine new context-menu Play requests from the artist/album parent directory are unaffected.
+- Retains v1.2.20.16 cycle-free album metadata, cache-first successor preparation and all current performance optimizations.
+[B]1.2.20.16[/B]
+- Optimizes the working automatic next-album path from v1.2.20.15.
+- Album track preparation now uses compact, cycle-free album metadata instead of embedding the complete album object including its tracks back into every track.
+- Track dictionaries are copied before Resonance adds GUI/playback metadata, avoiding mutation of cached/raw Spotify response objects.
+- Removes the eager Spotify Web API initialization from the virtual-album adapter; persistent/simple caches are consulted first and API initialization happens only on a real album cache miss.
+- Keeps the stable v1.2.19.1 playlist start/focus/full-screen workflow and the v1.2.20.15 sequence/auto-next engine unchanged.
+[B]1.2.20.15[/B]
+- Fixes the automatic next-album transition prepared by v1.2.20.14.
+- The virtual-album adapter now reuses prepared queue cache data before touching Spotify Web API state.
+- On a real cache miss it initializes Spotify API lazily and non-interactively before album/album-track access, preventing the background prepare/play routes from dereferencing an uninitialized Spotipy client.
+- The stable playlist-sequence, successor, advance, browse/play/focus/full-screen workflow remains unchanged.
+- Retains all v1.2.20.14 album sequence staging and current API/cache/Diagnostics behavior.
+[B]1.2.20.14[/B]
+- Extends the v1.2.20.13 virtual-album playlist workflow with the stable automatic next-parent-item engine used by My Music &gt; Playlists.
+- Artist album pages now stage their visible album order as a normal music playlist sequence using album:&lt;id&gt; identities.
+- After the final track of one album, the existing playlist successor/prefetch/foreground-handoff engine can prepare and start the next album in the artist listing automatically.
+- Adds only thin album adapters for sequence staging, transition preparation and lazy next-page discovery; the stable v1.2.19.1 browse_playlist, play_playlist, playlist context command and focus/full-screen methods remain unchanged.
+- Retains all v1.2.20.13 start/full-screen behavior and current Spotify API/cache/Diagnostics changes.
+[B]1.2.20.13[/B]
+- Reuses the stable v1.2.19.1 playlist context-play workflow for albums reached through My Music &gt; Artists and other album listings.
+- Album context-menu Play is routed through the unchanged stable browse_playlist -&gt; play_playlist -&gt; focus/full-screen path using an internal album:&lt;id&gt; virtual-playlist identity.
+- The stable v1.2.19.1 browse_playlist, play_playlist, playlist context command and focus/full-screen methods remain byte-for-byte unchanged.
+- Removes the experimental album-specific full-screen, context-marker canonicalization and control-id fallback logic introduced in v1.2.20.8-v1.2.20.12.
+- Keeps v1.2.20 artist/API/cache/Diagnostics changes outside this playback workflow.
+[B]1.2.20.12[/B]
+- Fixes automatic full-screen startup for album context-menu Play.
+- When the first browse_album context invocation renders before Kodi exposes an active list row, Resonance now derives the target row from the authoritative active music-session queue index instead of dropping the full-screen request.
+- A subsequent canonical browse_album refresh preserves a matching pending full-screen request rather than replacing it with fullscreen=false.
+- Keeps the v1.2.20.11 one-shot contextplay handling, album queue stability, focus behavior after leaving full-screen, and Stop refresh behavior.
+- Retains existing artist fallback, Diagnostics, pagination and playback behavior.
+[B]1.2.20.11[/B]
+- Makes album context playback truly one-shot: the contextplay marker is consumed after the initial foreground start and is removed from the visible container URL before later refreshes can replay the album.
+- Prevents browse_album refreshes from re-running play_album and restarting the same queue.
+- Improves browse_album focus readiness by allowing the resident worker to proceed through its normal visible-row verification when Kodi transiently reports no media container control for an otherwise stable album directory.
+- Keeps album context playback structurally aligned with My Music &gt; Playlists and preserves the browse_album Stop refresh that clears stale active coloring.
+- Retains v1.2.20.7 artist fallback behavior, Diagnostics, pagination and playback engine behavior.
+[B]1.2.20.10[/B]
+- Reworks album context-menu Play to use the same foreground-container architecture as My Music &gt; Playlists.
+- Context-menu Play now enters browse_album directly with contextplay=1; browse_album starts the album queue in that same foreground invocation, renders the tracks, focuses the active row and hands off to full-screen.
+- Publishes album:&lt;id&gt; as a visible queue state so the existing resident track-focus/full-screen worker can validate album rows exactly like playlist rows.
+- Extends the resident visible-track worker from browse_playlist to browse_album without skin-specific code.
+- Keeps the v1.2.20.8 Stop refresh so stale active coloring is cleared after Stop.
+- Retains v1.2.20.7 artist fallback behavior, Diagnostics, pagination and playback engine behavior.
+[B]1.2.20.9[/B]
+- Fixes the missing full-screen transition after context-menu Play on albums in the artist branch.
+- Reuses Resonance's existing verified focus/full-screen handoff instead of a fixed-delay background thread.
+- The album track directory is opened with a one-shot context-play marker; full-screen is submitted only after the active album track is rendered and focus-verified.
+- Keeps the v1.2.20.8 browse_album terminal refresh so Stop clears stale active coloring.
+- Retains v1.2.20.7 artist fallback behavior, Diagnostics, pagination and playback behavior.
+[B]1.2.20.8[/B]
+- Improves album playback started from the artist branch context menu: after "Play", Kodi opens the album track listing in the background and then enters full-screen music playback.
+- Keeps the full album as Kodi's active music playlist and lets the album listing focus the currently playing track.
+- Fixes stale selected/active coloring after Stop in an album track listing by allowing one safe terminal refresh for browse_album only.
+- Keeps playlist-transition safety rules and avoids skin-specific XML/window hacks.
+- Retains v1.2.20.7 artist fallback behavior, v1.2.20.4 Diagnostics, pagination and playback engine behavior.
+[B]1.2.20.7[/B]
+- Restores artists under Music &gt; Artists when Spotify /me/following returns zero artists.
+- Music &gt; Artists now uses the saved-library-derived artist list as a deliberate secondary source when the followed-artists API returns a valid empty result.
+- Keeps a genuine API-failure fallback path and logs the source explicitly as followed, library-derived, or persistent fallback.
+- Keeps v1.2.20.4 Diagnostics, v124 cache handling, pagination and playback behavior unchanged.
+[B]1.2.20.6[/B]
+- Fixes Music &gt; Artists semantics when Spotify /me/following successfully returns zero followed artists.
+- A successful empty followed-artists response now stays empty instead of being replaced with artists inferred from saved albums/tracks.
+- The saved-library artist fallback is now used only when the followed-artists API is genuinely unavailable.
+- Removes the temporary /me/library/contains diagnostic probe from v1.2.20.5.
+- Keeps FOLLOWED_ARTISTS_DIAG result logging, v1.2.20.4 Diagnostics, v124 cache handling, pagination and playback behavior unchanged.
+[B]1.2.20.5[/B]
+- Adds detailed FOLLOWED_ARTISTS_DIAG logging to distinguish successful empty Spotify responses from API failures/deferred calls.
+- Logs followed-artist cursor paging details including page items, total, next and cursor state.
+- Adds a controlled Spotify /me/library/contains diagnostic check for the saved-library fallback artists when the followed-artists list is empty.
+- Keeps visible Music &gt; Artists behavior unchanged: the existing saved-library artist fallback is still used.
+- Keeps all v1.2.20.4 Diagnostics, v1.2.20.1 cache and existing pagination/playback behavior unchanged.
+[B]1.2.20.4[/B]
+- Improves Diagnostics architecture labels for clarity: AMD64/x86_64 is shown as x64, aarch64/arm64 as ARM64, and armv7 variants as ARMv7.
+- Windows x64 systems therefore show Platform: Windows x64 instead of Windows amd64.
+- Keeps the v1.2.20.3 Windows no-console Diagnostics fix and all previous runtime, artist-cache and pagination behavior unchanged.
+[B]1.2.20.3[/B]
+- Fixes Windows Diagnostics platform reporting so Spotty Binaries and Playback no longer show Platform: unknown.
+- Determines the platform label independently from Spotty runtime probing, so a binary-probe failure cannot erase the detected operating system/architecture.
+- Suppresses Windows console flashes from diagnostic subprocesses using CREATE_NO_WINDOW and STARTF_USESHOWWINDOW.
+- Skips Linux iproute2 commands on Windows and uses the portable socket-based network diagnostics directly.
+- Keeps v1.2.20.2 runtime binary selection and all v1.2.20.1 artist-cache/pagination behavior unchanged.
+[B]1.2.20.2[/B]
+- Fixes Diagnostics so Windows, LibreELEC/Linux ARM and Android ARMv7/ARM64 report the same authentication and playback binaries selected by the actual Resonance runtime.
+- Removes hard-coded ARM-Linux diagnostic binary paths and probes versions through the actual runtime launch commands, including Android linker/deployed-binary commands.
+- Adds portable IPv4 route/address fallbacks for Windows and Android environments where the Linux ip command is unavailable.
+- Corrects the About playback-engine label for split legacy-auth/modern-playback Windows and Android builds.
+- Keeps v1.2.20.1 artist-cache handling, pagination and playback behavior unchanged.
+[B]1.2.20.1[/B]
+- Fixes stale Music &gt; Artists listings caused by the persistent followed-artists cache overriding the expiring cache.
+- Follow and unfollow actions now invalidate the current followed-artists cache immediately before refreshing the Kodi listing.
+- Uses the expiring cache as the authoritative fast path and keeps the persistent followed-artists snapshot only as an API-failure fallback.
+- Keeps the existing Spotify cursor order, Kodi pagination offsets and v1.2.20 album/single/compilation handling unchanged.
+[B]1.2.20[/B]
+- Adds compilations to the combined artist album/single browse branch, using album,single,compilation.
+- Keeps artist-album requests within Spotify's current maximum of 10 items per API request while preserving larger Kodi browse pages through pagination.
+- Uses the authenticated Spotify account market dynamically; no country such as SK or DE is hard-coded.
+- Keeps Spotify Web API page-size handling endpoint-specific; the bundled search client remains capped at 10 while endpoints that allow larger pages keep their own limits.
+[B]1.2.19[/B]
+- Promotes the user-tested v1.2.18.49 runtime unchanged to the stable v1.2.19 line after Windows 11 and LibreELEC Raspberry Pi 5 validation with Kodi 21.3.
+- Stabilizes context-menu playlist Play, fullscreen entry, active-track focus, successor pagination and repeated automatic playlist transitions for Kodi 21/22 with Confluence and Estuary.
+- Retains cache-first ARM performance, adaptive-prefetch statistics, the configurable early-stream-termination workaround, native Back/Stop ownership and the HEAD/stat fast path.
+- Uses only the foreground, generation-bound same-container refresh hand-off: no background Container.Update, Action(ParentDir), service-side directory navigation or skin XML behavior.
+[B]1.2.18.49[/B]
+- Recognizes contextplay=1 as Kodi's retained one-shot marker only when the exact unconsumed foreground hand-off, active generation/session and visible source identity agree. It is cleared before rendering so the predecessor queue cannot restart during an automatic successor transition.
+- Applies the same token-bound handling to every chained successor, even when Kodi continues to retain the original context-menu folder URL and no pagination page has replaced it.
+- Preserves genuine context-menu Play whenever no exact initial refresh lifecycle is active. Retains v1.2.18.48 runtime statistics/settings safety, context Play/fullscreen, successor pagination, native Back/Stop behavior and HEAD/stat fast path without service-side Container.Update, ParentDir action or skin XML behavior.
+[B]1.2.18.48[/B]
+- Classifies each fresh Resonance proxy identity at AVStarted and does not launch the podcast-position discovery worker for a normal music track. Unknown identities retain the bounded discovery window and spotify:episode streams retain podcast/audiobook resume behavior.
+- Samples music and episode position through Kodi 21/22 Player.Time and Player.Duration info labels after Player.HasAudio validation, avoiding getPlayingFile/getTime teardown races that produced harmless native Kodi exceptions on ARM.
+- Publishes adaptive/manual prefetch lead, latency, hits, fallbacks, cancellations and hit rate when settings are configured, early or scheduled prefetch completes, playback terminates and the service stops. Developer statistics therefore reflect the active early-prefetch path again.
+- Confirms the existing early-stream-termination workaround is applied at startup and on live setting changes, and adds its state to runtime/track-request diagnostics. Retains v1.2.18.47 ARM performance, context Play/fullscreen, chained foreground hand-offs, successor pagination, native Back/Stop safety and HEAD/stat fast path without service-side GUI navigation or skin XML behavior.
+[B]1.2.18.47[/B]
+- Emits playlist-overview rows through Kodi's batch directory API, skips unchanged persistent playlist-cache writes and stores each page's continuation URL in the same atomic sequence update. This targets the measured LibreELEC ARM delay without changing pagination or Spotify fetch behavior.
+- Lets Confluence/Estuary playlist containers settle for 0.60 seconds and permits three verified focus attempts spaced 0.75 seconds apart, covering the slower first Windows hand-off while retaining strict playlist/generation/track/page/control identity checks.
+- Preserves a committed successor after Stop only as a 30-second, one-shot, local foreground render identity. Stop performs no GUI command; overview navigation, manual playlist entry, playback error and service start clear the identity, and a missing local snapshot falls back to normal browsing.
+- Guards music-position capture with Kodi's Player.HasAudio condition before both file and time access to avoid decoder-teardown calls. Retains v1.2.18.46 context Play/fullscreen and chained hand-offs, v1.2.18.45 pagination, native Back-stack ownership, Stop/Error cleanup and HEAD/stat fast path with no service-side Container.Update, ParentDir action or skin XML behavior.
+[B]1.2.18.46[/B]
+- Makes playlist context-menu Play a direct user-initiated entry into the real playlist container, starts its queue once, restores the active row and opens music fullscreen only after Kodi verifies that row's focus.
+- Arms each automatic successor hand-off before asynchronous RunPlugin playback and tolerates transient empty/half-built Kodi container labels until the retained foreground playlist is stable again.
+- Keeps refresh authority bound to the exact hand-off, active generation/session and visible source identity; a 60-second orphan-cleanup ceiling now covers delayed LibreELEC ARM plugin invocation without permitting stale reuse.
+- Adds regressions for a ten-second delayed refresh invocation, transient Windows folder state, duplicate refresh prevention and canonical context-Play routing. Retains v1.2.18.45 pagination, native Back/Stop safety and the HEAD/stat fast path with no service-side Container.Update, ParentDir action or skin XML behavior.
+[B]1.2.18.45[/B]
+- Fixes "More ..." after an automatic successor-playlist hand-off by generating pagination from the playlist actually rendered, never from the retained predecessor container URL.
+- Rebinds only the foreground invocation's playlist route context, so selecting page 2 keeps the successor playlist identity and requested offset and bypasses committed-anchor replay.
+- Adds a stateful CI regression that executes predecessor page, successor hand-off, generated More route and successor pages 2/3, plus the Stop replay barrier.
+- Keeps the v1.2.18.44 live-gated replay, v1.2.18.43 cache-first performance, native Back handling, Stop/Error cleanup and HEAD/stat fast path unchanged and Kodi 21/22 compliant.
+[B]1.2.18.44[/B]
+- Keeps a committed successor-playlist view active when Kodi re-runs the retained predecessor container URL during live successor playback.
+- Revalidates the active sequence generation, music session, rendered target and live audio before replaying the foreground render; Stop or a session change restores normal browsing.
+- Reuses the existing hand-off state without a persistent history alias, additional refresh, background navigation, Container.Update or Action(ParentDir).
+- Retains the v1.2.18.43 ARM cache-first performance paths, native Back handling, Stop/Error cleanup and HEAD/stat fast path unchanged and Kodi 21/22 compliant.
+[B]1.2.18.43[/B]
+- Dispatches playlist playback, browsing and prepared transitions cache-first, importing Spotty/Spotipy only after a genuine local-data miss.
+- Starts a cached playlist queue before any optional long-playlist Web API extension; the non-interactive extension is serialized, ownership-checked and exception-contained.
+- Reduces cold ARM startup work by loading session/metadata helpers only for routes that use them and by lazily exposing unused Spotipy OAuth/cache helpers.
+- Keeps the v1.2.18.42 foreground-only GUI hand-off, verified dynamic focus, native Back stack, Stop/Error cleanup and HEAD/stat fast path unchanged and Kodi 21/22 compliant.
+[B]1.2.18.42[/B]
+- Tracks Kodi's retained playlist URL separately from the playlist and page actually rendered by a foreground hand-off, so automatic successor transitions can chain safely.
+- Uses a one-shot refresh token for both successor-playlist hand-offs and active tracks crossing a paginated playlist boundary; stale history URLs cannot activate the renderer.
+- Restores normal and hand-off track focus only after playlist, generation, queue position, visible page and dynamic media-control checks, then verifies Kodi's focused row with bounded retry.
+- Keeps native queue properties as the playing-state owner and retains the foreground-only architecture, native Back stack, Stop/Error cleanup and HEAD/stat fast path with no background navigation.
+[B]1.2.18.41[/B]
+- Detects Kodi's actually visible media-list control for the committed foreground hand-off, including Confluence control 50 and Estuary control 55, without skin XML logic.
+- Accepts either the retained predecessor or canonical successor playlist URL only while generation, rendered target, active sequence and active session all match.
+- Keeps a hand-off focus request passively pending for up to five seconds and logs its folder, action, control and update state instead of silently dropping it.
+- Retains the canonical foreground-only architecture, native Back stack, Stop/Error cleanup and HEAD/stat fast path; adds no Container.Update, Action(ParentDir) or service-side navigation.
+[B]1.2.18.40[/B]
+- Places playlist updateListing finalization in browse_playlist only; top tracks and discovery keep their normal directory completion.
+- Uses updateListing only for explicit playlist pagination and the generation-bound foreground hand-off, while fresh playlist entry remains normal child navigation.
+- Consolidates active GUI safety and foreground hand-off code into canonical unversioned modules and removes obsolete hotfix and background GUI-sync modules from packages.
+- Retains the v1.2.18.39 superseded natural-End guard, Windows crash barriers, native Back stack and HEAD/stat fast path.
+[B]1.2.18.39[/B]
+- Rejects a superseded natural End callback before it can deactivate the active successor-playlist session.
+- Keeps a deferred fullscreen foreground hand-off valid while the next track already owns the HTTP stream.
+- Leaves explicit Stop/Error handling unchanged and retains v1.2.18.38 updateListing pagination/handoff behavior.
+- Adds no background Container.Update, Action(ParentDir), service-side navigation or Back-stack manipulation.
+[B]1.2.18.38[/B]
+- Finalizes explicit playlist pagination and automatic foreground hand-offs with Kodi's updateListing mode so they replace the current listing instead of adding a stale playlist-history level.
+- Keeps a fresh playlist entry as a normal child directory even when Resonance opens the page containing the active track.
+- Retains v1.2.18.37 native Back handling and v1.2.18.35 generation/session/focus validation.
+- Adds no background Container.Update, Action(ParentDir), service-side navigation or Stop navigation.
+[B]1.2.18.37[/B]
+- Removes the v1.2.18.36 committed playlist-view alias that consumed Backspace and moved focus to the end of the playlist after Stop.
+- Keeps the restored configured playlist-track pagination and the v1.2.18.35 generation/session/focus validation.
+- Backspace is no longer intercepted by a playlist wrapper; Stop performs no additional focus or navigation action.
+- Retains all Windows crash barriers with no background Container.Update, Action(ParentDir) or service-side navigation.
+[B]1.2.18.36[/B]
+- Restores the configured playlist-track pagination removed for materialized queues in v1.2.18.34.
+- Keeps a short-lived committed foreground-view alias so Kodi restoring the predecessor folder URL renders the visible successor instead of the previously played playlist.
+- Clears that alias as soon as the playlist overview is rendered and retains the v1.2.18.35 generation/session/focus validation.
+- Adds no background Container.Update, Action(ParentDir), service-side navigation or skin-specific behavior.
+[B]1.2.18.35[/B]
+- Fixes automatic successor-track focus after the committed same-container playlist hand-off.
+- Validates Kodi's intentionally retained predecessor FolderPath as the stable container anchor while generation, rendered target, active sequence and active session must all match the successor.
+- Keeps the v1.2.18.34 one-page materialized queue Back-stack fix and adds no navigation, Container.Update or Action(ParentDir).
+[B]1.2.18.34[/B]
+- Keeps a materialized 50-track playback queue on one Kodi playlist page even when the generic browse-page setting is 40.
+- Prevents the old page-0 playlist directory from remaining underneath page 40 and appearing on Back after an automatic playlist hand-off.
+- Changes no service navigation: foreground same-container Refresh, Windows crash barriers, HEAD/Stat fast path and Stop/Error Back-stack cleanup remain unchanged.
+[B]1.2.18.33[/B]
+- Fixes the v1.2.18.32 foreground hand-off focus being cancelled after successor playback had already consumed its short-lived transition marker.
+- Post-commit focus validation now uses the durable hand-off generation, active playlist sequence and active session identities.
+- Keeps every v1.2.18.32 Windows crash barrier and the native Back-stack behavior unchanged.
+[B]1.2.18.32[/B]
+- Prevents the resident service from scanning or focusing normal playlist containers while Kodi is committing a foreground browse directory.
+- Automatic cross-playlist focus is now generation-bound and staged only after the successor foreground hand-off has committed.
+- Requires the target playlist folder and control 50 to remain visible and stable, with Container.IsUpdating false, before any row lookup or Control.SetFocus.
+- Removes service-side playlist page repair through Container.Update; missing hand-off rows expire without changing Kodi navigation.
+- Retains the v1.2.18.31 route-name/legacy-alias fix, the foreground same-container Refresh architecture, the v1.2.18.29 Back-stack cleanup and the v1.2.18.26 HEAD/Stat fast path.
+[B]1.2.18.31[/B]
+- Fixes an empty playlist after context-menu playback introduced in v1.2.18.30.
+- Preserves the public browse_playlist action identity for all newly generated Kodi routes.
+- Accepts stale v1.2.18.30 browse_playlist_foreground_handoff history URLs as a compatibility alias and normalizes them to browse_playlist.
+- Keeps the foreground GUI hand-off architecture otherwise unchanged, including one same-container Container.Refresh and no background Container.Update.
+- Retains the v1.2.18.29 Stop/Error back-stack cleanup and the v1.2.18.26 non-blocking HEAD/Stat fast path.
+[B]1.2.18.30[/B]
+- Restores automatic cross-playlist GUI synchronization without reintroducing the Windows crash path from v1.2.18.26/.27: the service stages a generation-bound foreground hand-off and never uses background Container.Update.
+- When Kodi refreshes the already visible predecessor playlist, the same foreground browse_playlist invocation renders the active successor playlist, including its folder name, correct page and active track selection.
+- A single same-container Container.Refresh is allowed only after the successor is active and the old playlist page is stably visible; no parent/child directory pair is opened and Kodi's native Back stack remains unchanged.
+- Service-side Control.SetFocus is blocked while predecessor rows are stale and released only after the successor directory has committed.
+- Retains the v1.2.18.29 Stop/Error back-stack cleanup and the v1.2.18.26 non-blocking HEAD/Stat fast path.
+- Remains Kodi 21/22 compatible and skin-agnostic for Confluence and Estuary.
+[B]1.2.18.29[/B]
+- Completes the v1.2.18.28 background-GUI rollback by disabling AutoFollowHistory, playlist-sequence GUI/history hand-off and the stopped-parent refresh path that could add extra browse_playlists invocations after Stop.
+- Stop/Error preserve Kodi's native Back stack and clear transient GUI state without Container.Update, Container.Refresh or Control.SetFocus.
+[B]1.2.18.28[/B]
+- Disables automatic Resonance background Container.Update/Container.Refresh/Control.SetFocus navigation after reproducible Windows Kodi 21.3 native crashes.
+[B]1.2.18.27[/B]
+- Event-driven GUI synchronization experiment; withdrawn after a reproducible Windows Kodi 21.3 native crash while parent and playlist plugin invokers overlapped.
+[B]1.2.18.26[/B]
+- Adds the non-blocking HEAD/Stat fast path for local /track URLs.
+Complete release history is retained in CHANGELOG.txt / CHANGELOG.md and the project release documentation.</news>
+			<assets>
+				<icon>resources/logo.png</icon>
+				<fanart>resources/fanart.jpg</fanart>
+			</assets>
+		</extension>
+	</addon>
 	<addon id="plugin.video.iptvxc" name="[B][COLOR red]XCUI Streams[/COLOR][/B]" version="3.8.8" provider-name="Nigel1992">
 		<requires>
 			<import addon="xbmc.python" version="3.0.0"/>
