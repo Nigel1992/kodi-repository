@@ -12,15 +12,14 @@
 		</requires>
 		<extension point="xbmc.python.pluginsource" library="plugin.py">
 			<provides>audio</provides>
-			<reuselanguageinvoker>true</reuselanguageinvoker>
 		</extension>
 		<extension library="service.py" point="xbmc.service"/>
 		<extension point="xbmc.addon.metadata">
-			<platform>all</platform>
+			<platform>linux android</platform>
 			<summary lang="en_GB">Resonance: a minimal Spotify music browser and player for Kodi</summary>
-			<summary lang="de_DE">Spotify-Premium-Musik in Kodi hören: Resonance-Plugin (Spotty/librespot), getestet auf LibreELEC/Raspberry Pi</summary>
-			<description lang="en_GB">Resonance is a lightweight Spotify music browser for Kodi focused on playlists, search, albums, artists and playback. It uses the regular Spotify Web API catalogue with persistent caching and shared rate-limit handling. Spotify Premium is required. Podcasts, audiobooks, lyrics and library editing are not included.</description>
-			<description lang="de_DE">Resonance ist ein leichtgewichtiges Spotify-Musik-Add-on für Kodi mit Playlists, Suche, Alben, Künstlern und Wiedergabe. Es verwendet die reguläre Spotify Web API mit persistentem Cache und gemeinsamer Rate-Limit-Behandlung. Spotify Premium ist erforderlich.</description>
+			<summary lang="de_DE">Spotify-Premium-Musik in Kodi hören: Resonance-Plugin (Spotty/librespot), für ARM/LibreELEC auf Raspberry Pi</summary>
+			<description lang="en_GB">Resonance is a lightweight Spotify music browser for Kodi focused on playlists, search, albums, artists and playback. Version 1 is built and tested for LibreELEC on Raspberry Pi ARM/AArch64, with experimental Android ARM binaries included. Windows, macOS and Linux x86/x64 are not supported in this release. Spotify Premium is required.</description>
+			<description lang="de_DE">Resonance ist ein leichtgewichtiges Spotify-Musik-Add-on für Kodi mit Playlists, Suche, Alben, Künstlern und Wiedergabe. Version 1 ist für LibreELEC auf Raspberry Pi ARM/AArch64 gebaut und getestet; Android-ARM-Binärdateien sind experimentell enthalten. Spotify Premium ist erforderlich.</description>
 			<disclaimer lang="en_GB">This product uses the SPOTIFY WEB API but is not endorsed, certified or otherwise approved in any way by Spotify. Spotify is the registered trademark of Spotify AB.</disclaimer>
 			<disclaimer lang="de_DE">Dieses Produkt verwendet die SPOTIFY WEB API, wird jedoch in keiner Weise von Spotify unterstützt, zertifiziert oder anderweitig genehmigt. Spotify ist eine eingetragene Marke von Spotify AB.</disclaimer>
 			<source>https://github.com/Nigel1992/plugin.audio.resonance</source>
@@ -31,7 +30,7 @@
 - Two independent sign-ins: Device Connect (Spotty) for playback, and browser PKCE sign-in for the catalogue.
 - Hosted callback relay for the browser sign-in (https://resonance-spotify-callback.vercel.app/api/callback) with paste-code fallback; configurable Client ID and redirect URI in Settings.
 - Persistent catalogue cache, loopback audio streaming service and shared provider rate-limit/cooldown handling.
-- Tested on LibreELEC on Raspberry Pi (incl. Pi 5) with Kodi 20/21/22.</news>
+- Supported target: LibreELEC on Raspberry Pi ARM/AArch64. Android ARM is experimental. Windows, macOS and Linux x86/x64 are not supported in this release.</news>
 			<assets>
 				<icon>resources/logo.png</icon>
 				<fanart>resources/fanart.jpg</fanart>
