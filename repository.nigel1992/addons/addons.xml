@@ -19,19 +19,18 @@
 			<platform>all</platform>
 			<summary lang="en_GB">Resonance: a minimal Spotify music browser and player for Kodi</summary>
 			<summary lang="de_DE">Spotify-Premium-Musik in Kodi hören: Resonance-Plugin (Spotty/librespot), getestet auf LibreELEC/Raspberry Pi</summary>
-			<description lang="en_GB">Resonance is a lightweight Spotify music browser for Kodi focused on playlists, music search, albums, artists and playback. It uses Spotify account data when available and wolfX for public catalogue fallback, with persistent caching and shared rate-limit handling. Bundled Spotty authentication and audio transport are retained from the upstream add-on. Tested on LibreELEC/Raspberry Pi. Spotify Premium is required. Podcasts, audiobooks and library editing are not included. Rebranded as Resonance; based on work by glk1001 and herberto08.</description>
-			<description lang="de_DE">Die Weiterentwicklung dieses Addons unter Einbeziehung von ChatGPT-KI-Unterstützung basiert auf den Grundlagen und dem Quellcode von plugin.audio.spotify v1.3.14 von glk1001. Ermöglicht die Nutzung eines Spotify-Premium-Kontos, um Spotify mit Kodi zu verbinden und Musik über Kodi wiederzugeben.</description>
+			<description lang="en_GB">Resonance is a lightweight Spotify music browser for Kodi focused on playlists, search, albums, artists and playback. It uses the regular Spotify Web API catalogue with persistent caching and shared rate-limit handling. Spotify Premium is required. Podcasts, audiobooks, lyrics and library editing are not included.</description>
+			<description lang="de_DE">Resonance ist ein leichtgewichtiges Spotify-Musik-Add-on für Kodi mit Playlists, Suche, Alben, Künstlern und Wiedergabe. Es verwendet die reguläre Spotify Web API mit persistentem Cache und gemeinsamer Rate-Limit-Behandlung. Spotify Premium ist erforderlich.</description>
 			<disclaimer lang="en_GB">This product uses the SPOTIFY WEB API but is not endorsed, certified or otherwise approved in any way by Spotify. Spotify is the registered trademark of Spotify AB.</disclaimer>
 			<disclaimer lang="de_DE">Dieses Produkt verwendet die SPOTIFY WEB API, wird jedoch in keiner Weise von Spotify unterstützt, zertifiziert oder anderweitig genehmigt. Spotify ist eine eingetragene Marke von Spotify AB.</disclaimer>
 			<source>https://github.com/Nigel1992/plugin.audio.resonance</source>
 			<website>https://github.com/Nigel1992/plugin.audio.resonance</website>
 			<news>[B]1.0.0[/B]
-- Initial release of Resonance (addon id plugin.audio.resonance), a minimal Spotify music browser and player for Kodi.
-- New minimal music browser: search (songs/albums/artists/playlists), album and artist browsing with pagination, playlists and Spotify links.
-- Two independent sign-ins: Device Connect (Spotty) for playback, and a browser PKCE sign-in for the catalogue (search, playlists, links) without Web API rate limits.
+- Version 1 release of Resonance for Kodi.
+- Spotify Web API-only catalogue: search, playlists, albums, artists, links and track metadata use the browser PKCE token.
+- Two independent sign-ins: Device Connect (Spotty) for playback, and browser PKCE sign-in for the catalogue.
 - Hosted callback relay for the browser sign-in (https://resonance-spotify-callback.vercel.app/api/callback) with paste-code fallback; configurable Client ID and redirect URI in Settings.
 - Persistent catalogue cache, loopback audio streaming service and shared provider rate-limit/cooldown handling.
-- Bundled Spotty/librespot helper binaries for playback; existing login/settings/cache migrated from the previous add-on on first start.
 - Tested on LibreELEC on Raspberry Pi (incl. Pi 5) with Kodi 20/21/22.</news>
 			<assets>
 				<icon>resources/logo.png</icon>
