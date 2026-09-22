@@ -27,7 +27,7 @@
 			<news>[B]1.0.0[/B]
 - Version 1 release of Resonance for Kodi.
 - Spotify Web API-only catalogue: search, playlists, albums, artists, links and track metadata use the browser PKCE token.
-- Two independent sign-ins: Device Connect (Spotty) for playback, and browser PKCE sign-in for the catalogue.
+- Single setup flow: Spotify Connect pairing for playback first, then browser PKCE sign-in for the catalogue.
 - Hosted callback relay for the browser sign-in (https://resonance-spotify-callback.vercel.app/api/callback) with paste-code fallback; configurable Client ID and redirect URI in Settings.
 - Persistent catalogue cache, loopback audio streaming service and shared provider rate-limit/cooldown handling.
 - Supported target: LibreELEC on Raspberry Pi ARM/AArch64. Android ARM is experimental. Windows, macOS and Linux x86/x64 are not supported in this release.</news>
