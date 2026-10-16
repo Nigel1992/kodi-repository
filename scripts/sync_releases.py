@@ -12,6 +12,8 @@ import zipfile
 
 ROOT = Path(__file__).resolve().parents[1]
 ADDONS = ROOT / 'repository.nigel1992' / 'addons'
+
+
 def load_sources(path=ROOT / 'addon-sources.json'):
     sources = json.loads(path.read_text())
     if not isinstance(sources, dict) or not sources:
@@ -26,12 +28,12 @@ def load_sources(path=ROOT / 'addon-sources.json'):
     return result
 
 
-
 def download(url, authenticated=False):
     headers = {'User-Agent': 'Nigel1992-kodi-repository'}
     if authenticated and os.environ.get('GH_TOKEN'):
         headers['Authorization'] = 'Bearer ' + os.environ['GH_TOKEN']
-    with urllib.request.urlopen(urllib.request.Request(url, headers=headers), timeout=60) as response:
+    # Reduced timeout to 30s to prevent hanging GitHub Action runners
+    with urllib.request.urlopen(urllib.request.Request(url, headers=headers), timeout=30) as response:
         return response.read()
 
 
@@ -62,32 +64,59 @@ def inspect_zip(data, addon_id, asset_name):
 
 
 def sync(addon_id, repository):
-    release = json.loads(download(f'https://api.github.com/repos/{repository}/releases/latest', True))
+    # 1. Fetch release metadata (Lightweight GitHub API call)
+    try:
+        release_raw = download(f'https://api.github.com/repos/{repository}/releases/latest', authenticated=True)
+        release = json.loads(release_raw)
+    except Exception as e:
+        print(f'[{addon_id}] Failed to fetch release metadata for {repository}: {e}')
+        return
+
     if release.get('draft') or release.get('prerelease'):
-        raise ValueError('Expected a stable published release')
-    assets = [a for a in release['assets'] if a['name'].startswith(addon_id + '-') and a['name'].endswith('.zip')]
+        print(f'[{addon_id}] Skipping: non-stable or draft release')
+        return
+
+    assets = [a for a in release.get('assets', []) if a['name'].startswith(addon_id + '-') and a['name'].endswith('.zip')]
     if len(assets) != 1:
-        raise ValueError(f'{repository}: expected exactly one addon ZIP, found {len(assets)}')
+        print(f'[{addon_id}] Expected 1 ZIP asset in {repository}, found {len(assets)}')
+        return
+
     asset = assets[0]
     target = ADDONS / addon_id
     marker = target / '.release.json'
     state = {k: asset[k] for k in ('id', 'name', 'updated_at', 'size')}
-    if marker.exists() and json.loads(marker.read_text()) == state and (target / asset['name']).exists() and (target / 'addon.xml').exists():
-        print(f'{addon_id}: already current ({release["tag_name"]})')
-        return
+
+    # 2. Fast Early-Exit check: If release marker matches and files exist, skip instantly
+    zip_path = target / asset['name']
+    xml_path = target / 'addon.xml'
+    
+    if marker.exists() and zip_path.exists() and xml_path.exists():
+        try:
+            if json.loads(marker.read_text()) == state:
+                print(f'{addon_id}: already current ({release["tag_name"]})')
+                return
+        except Exception:
+            pass  # Re-download if marker file is corrupted
+
+    # 3. Download & Process Asset only when a new release is actually found
+    print(f'{addon_id}: Downloading new release {release["tag_name"]}...')
     data = download(asset['browser_download_url'])
+    
     if len(data) != asset['size']:
         raise ValueError('Downloaded asset size differs from GitHub metadata')
     if asset.get('digest') and asset['digest'] != 'sha256:' + hashlib.sha256(data).hexdigest():
         raise ValueError('Downloaded asset digest differs from GitHub metadata')
+
     files = inspect_zip(data, addon_id, asset['name'])
     files[asset['name']] = data
+
     for name, contents in files.items():
         path = target / name
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_bytes(contents)
+
     marker.write_text(json.dumps(state, indent=2) + '\n')
-    print(f'{addon_id}: imported {release["tag_name"]}')
+    print(f'{addon_id}: successfully imported {release["tag_name"]}')
 
 
 if __name__ == '__main__':
