@@ -10,7 +10,7 @@ on:
       - ".github/workflows/update_repo.yml"
 
   schedule:
-  - cron: "7,22,37,52 * * * *"
+    - cron: "7,22,37,52 * * * *"
 
   workflow_dispatch:
 
@@ -19,7 +19,7 @@ permissions:
 
 concurrency:
   group: update-kodi-repository
-  cancel-in-progress: false
+  cancel-in-progress: true
 
 jobs:
   update-repo:
@@ -31,7 +31,7 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v5
         with:
-          fetch-depth: 0
+          fetch-depth: 1
 
       - name: Set up Python
         uses: actions/setup-python@v6
