@@ -1,6 +1,6 @@
-# My Kodi Addons Repository
+# Nigel1992 Kodi Repository
 
-This repository contains a collection of my Kodi addons.
+This repository contains a collection of Nigel1992's Kodi addons.
 
 ## How to Install This Repository in Kodi
 
@@ -12,7 +12,7 @@ This repository contains a collection of my Kodi addons.
 
 ## How to Add Your Addons to This Repository
 
-1. Place your addon folder in the `repository.mykodiaddons/addons/` directory
+1. Place your addon folder in the `repository.nigel1992/addons/` directory
 2. Each addon must have a valid `addon.xml` file
 3. Push the changes to GitHub
 4. GitHub Actions will automatically generate the necessary XML files
