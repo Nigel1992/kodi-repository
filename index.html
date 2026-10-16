@@ -2,19 +2,472 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Nigel's Kodi Repository - a curated collection of Kodi add-ons.">
     <title>Nigel's Kodi Repository</title>
+    <link rel="icon" href="repository.nigel1992/icon.png">
     <style>
-        body { font-family: sans-serif; max-width: 600px; margin: 40px auto; padding: 0 20px; }
-        code { background: #f4f4f4; padding: 2px 6px; border-radius: 4px; }
+        :root {
+            --bg: #0b0d17;
+            --bg-soft: #12152a;
+            --card: rgba(255, 255, 255, 0.04);
+            --card-border: rgba(255, 255, 255, 0.09);
+            --text: #eef1ff;
+            --muted: #9aa3c7;
+            --accent: #6d8bff;
+            --accent-2: #b06bff;
+            --accent-3: #22d3ee;
+            --radius: 18px;
+            --shadow: 0 18px 50px -20px rgba(0, 0, 0, 0.75);
+        }
+
+        * { box-sizing: border-box; }
+
+        html { scroll-behavior: smooth; }
+
+        body {
+            margin: 0;
+            font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            color: var(--text);
+            background: var(--bg);
+            line-height: 1.6;
+            -webkit-font-smoothing: antialiased;
+            overflow-x: hidden;
+        }
+
+        /* Ambient background glows */
+        body::before,
+        body::after {
+            content: "";
+            position: fixed;
+            z-index: -1;
+            width: 60vw;
+            height: 60vw;
+            max-width: 900px;
+            max-height: 900px;
+            border-radius: 50%;
+            filter: blur(120px);
+            opacity: 0.35;
+            pointer-events: none;
+        }
+        body::before {
+            top: -20vw;
+            left: -10vw;
+            background: radial-gradient(circle, var(--accent) 0%, transparent 65%);
+        }
+        body::after {
+            bottom: -25vw;
+            right: -15vw;
+            background: radial-gradient(circle, var(--accent-2) 0%, transparent 65%);
+        }
+
+        .wrap {
+            max-width: 1040px;
+            margin: 0 auto;
+            padding: 0 24px;
+        }
+
+        /* ---------- Hero ---------- */
+        header.hero {
+            text-align: center;
+            padding: 96px 24px 56px;
+        }
+
+        .badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 13px;
+            font-weight: 600;
+            letter-spacing: 0.02em;
+            color: var(--muted);
+            border: 1px solid var(--card-border);
+            background: var(--card);
+            padding: 7px 14px;
+            border-radius: 999px;
+            backdrop-filter: blur(8px);
+        }
+        .badge .dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #3ddc84;
+            box-shadow: 0 0 12px #3ddc84;
+        }
+
+        h1 {
+            font-size: clamp(2.2rem, 6vw, 3.6rem);
+            line-height: 1.1;
+            margin: 22px 0 14px;
+            font-weight: 800;
+            letter-spacing: -0.02em;
+        }
+        h1 .grad {
+            background: linear-gradient(120deg, var(--accent) 0%, var(--accent-2) 50%, var(--accent-3) 100%);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .lede {
+            max-width: 620px;
+            margin: 0 auto;
+            color: var(--muted);
+            font-size: 1.05rem;
+        }
+
+        .cta-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 14px;
+            justify-content: center;
+            margin-top: 34px;
+        }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            padding: 13px 24px;
+            border-radius: 999px;
+            font-weight: 600;
+            font-size: 0.95rem;
+            text-decoration: none;
+            border: 1px solid transparent;
+            cursor: pointer;
+            transition: transform 0.15s ease, box-shadow 0.2s ease, background 0.2s ease;
+        }
+        .btn:hover { transform: translateY(-2px); }
+
+        .btn.primary {
+            color: #fff;
+            background: linear-gradient(120deg, var(--accent), var(--accent-2));
+            box-shadow: 0 12px 30px -12px var(--accent-2);
+        }
+        .btn.ghost {
+            color: var(--text);
+            background: var(--card);
+            border-color: var(--card-border);
+            backdrop-filter: blur(8px);
+        }
+        .btn.ghost:hover { background: rgba(255, 255, 255, 0.09); }
+
+        /* ---------- Sections ---------- */
+        section { padding: 40px 0; }
+
+        h2 {
+            font-size: 1.5rem;
+            font-weight: 700;
+            letter-spacing: -0.01em;
+            margin: 0 0 22px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        h2::before {
+            content: "";
+            width: 6px;
+            height: 24px;
+            border-radius: 4px;
+            background: linear-gradient(var(--accent), var(--accent-2));
+        }
+
+        /* ---------- Steps ---------- */
+        .steps {
+            display: grid;
+            gap: 16px;
+            counter-reset: step;
+        }
+        .step {
+            display: flex;
+            gap: 18px;
+            align-items: flex-start;
+            background: var(--card);
+            border: 1px solid var(--card-border);
+            border-radius: var(--radius);
+            padding: 20px 22px;
+            backdrop-filter: blur(10px);
+            box-shadow: var(--shadow);
+        }
+        .step::before {
+            counter-increment: step;
+            content: counter(step);
+            flex: 0 0 34px;
+            height: 34px;
+            display: grid;
+            place-items: center;
+            border-radius: 50%;
+            font-weight: 700;
+            font-size: 0.9rem;
+            color: #fff;
+            background: linear-gradient(120deg, var(--accent), var(--accent-2));
+        }
+        .step p { margin: 0; }
+        .step .hint { color: var(--muted); font-size: 0.9rem; }
+
+        /* ---------- URL box ---------- */
+        .urlbox {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-top: 14px;
+            background: var(--bg-soft);
+            border: 1px solid var(--card-border);
+            border-radius: 12px;
+            padding: 10px 10px 10px 16px;
+            font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+            font-size: 0.88rem;
+            overflow: hidden;
+        }
+        .urlbox code {
+            flex: 1;
+            color: var(--accent-3);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            background: none;
+            padding: 0;
+        }
+        .copy {
+            flex: 0 0 auto;
+            border: 1px solid var(--card-border);
+            background: var(--card);
+            color: var(--text);
+            border-radius: 9px;
+            padding: 7px 13px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.2s ease, color 0.2s ease;
+        }
+        .copy:hover { background: rgba(255, 255, 255, 0.1); }
+        .copy.done { background: #3ddc84; color: #06210f; border-color: transparent; }
+
+        /* ---------- Download cards ---------- */
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+            gap: 18px;
+        }
+        .dl-card {
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+            background: var(--card);
+            border: 1px solid var(--card-border);
+            border-radius: var(--radius);
+            padding: 24px;
+            backdrop-filter: blur(10px);
+            box-shadow: var(--shadow);
+            text-decoration: none;
+            color: inherit;
+            transition: transform 0.18s ease, border-color 0.18s ease;
+        }
+        .dl-card:hover {
+            transform: translateY(-4px);
+            border-color: rgba(109, 139, 255, 0.6);
+        }
+        .dl-card .name { font-weight: 700; font-size: 1.02rem; }
+        .dl-card .ver {
+            font-size: 0.78rem;
+            color: var(--muted);
+            font-family: ui-monospace, Menlo, Consolas, monospace;
+        }
+        .dl-card .go {
+            margin-top: auto;
+            color: var(--accent);
+            font-weight: 600;
+            font-size: 0.88rem;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        /* ---------- Addon cards ---------- */
+        .addons {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+            gap: 16px;
+        }
+        .addon {
+            background: var(--card);
+            border: 1px solid var(--card-border);
+            border-radius: var(--radius);
+            padding: 20px;
+            backdrop-filter: blur(10px);
+            transition: transform 0.18s ease, border-color 0.18s ease, background 0.18s ease;
+        }
+        .addon:hover {
+            transform: translateY(-4px);
+            border-color: rgba(176, 107, 255, 0.6);
+            background: rgba(255, 255, 255, 0.06);
+        }
+        .addon .tag {
+            display: inline-block;
+            font-size: 0.68rem;
+            font-weight: 700;
+            letter-spacing: 0.06em;
+            text-transform: uppercase;
+            padding: 4px 9px;
+            border-radius: 6px;
+            margin-bottom: 12px;
+            color: var(--accent-3);
+            background: rgba(34, 211, 238, 0.12);
+            border: 1px solid rgba(34, 211, 238, 0.25);
+        }
+        .addon .tag.service { color: #ffb86b; background: rgba(255, 184, 107, 0.12); border-color: rgba(255, 184, 107, 0.25); }
+        .addon .tag.audio { color: #7ef0a6; background: rgba(126, 240, 166, 0.12); border-color: rgba(126, 240, 166, 0.25); }
+        .addon h3 { margin: 0 0 6px; font-size: 1.05rem; font-weight: 700; }
+        .addon .id {
+            font-family: ui-monospace, Menlo, Consolas, monospace;
+            font-size: 0.74rem;
+            color: var(--muted);
+            word-break: break-all;
+        }
+
+        /* ---------- Footer ---------- */
+        footer {
+            text-align: center;
+            color: var(--muted);
+            padding: 56px 24px 48px;
+            font-size: 0.86rem;
+        }
+        footer a { color: var(--accent); text-decoration: none; }
+        footer a:hover { text-decoration: underline; }
+
+        @media (prefers-reduced-motion: reduce) {
+            * { transition: none !important; scroll-behavior: auto !important; }
+        }
     </style>
 </head>
 <body>
-    <h1>Nigel's Kodi Repository</h1>
-    <p>To install this repository in Kodi:</p>
-    <ol>
-        <li>Go to <strong>Settings &rarr; File Manager &rarr; Add Source</strong>.</li>
-        <li>Enter URL: <code>https://nigel1992.github.io/kodi-repository/</code></li>
-        <li>Go to <strong>Settings &rarr; Add-ons &rarr; Install from zip file</strong> and select the source.</li>
-    </ol>
+
+    <header class="hero">
+        <span class="badge"><span class="dot"></span> Kodi Add-on Repository</span>
+        <h1>Nigel's <span class="grad">Kodi Repository</span></h1>
+        <p class="lede">
+            A curated collection of add-ons for Kodi. Add the source once, install the
+            repository, and every add-on stays up to date automatically.
+        </p>
+        <div class="cta-row">
+            <a class="btn primary" href="repository.nigel1992/repository.nigel1992-1.0.3.zip" download>
+                Download Repository (.zip)
+            </a>
+            <a class="btn ghost" href="#install">How to install</a>
+        </div>
+    </header>
+
+    <main class="wrap">
+
+        <section id="install">
+            <h2>Install in 3 steps</h2>
+            <div class="steps">
+                <div class="step">
+                    <div>
+                        <p>Go to <strong>Settings &rarr; File Manager &rarr; Add Source</strong> and click <strong>&lt;None&gt;</strong>.</p>
+                        <p class="hint">Give the source a name, e.g. <em>Nigel Kodi</em>.</p>
+                    </div>
+                </div>
+                <div class="step">
+                    <div>
+                        <p>Enter the source URL below and press <strong>OK</strong>.</p>
+                        <div class="urlbox">
+                            <code id="src-url">https://nigel1992.github.io/kodi-repository/</code>
+                            <button class="copy" data-copy="https://nigel1992.github.io/kodi-repository/">Copy</button>
+                        </div>
+                    </div>
+                </div>
+                <div class="step">
+                    <div>
+                        <p>Go to <strong>Settings &rarr; Add-ons &rarr; Install from zip file</strong>, pick the source and select the repository zip.</p>
+                        <p class="hint">Done! The rest of the add-ons are now available under <em>Install from repository</em>.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="downloads">
+            <h2>Direct downloads</h2>
+            <div class="grid">
+                <a class="dl-card" href="repository.nigel1992/repository.nigel1992-1.0.3.zip" download>
+                    <span class="name">Nigel1992 Repository</span>
+                    <span class="ver">v1.0.3</span>
+                    <span class="go">Download .zip &rarr;</span>
+                </a>
+                <a class="dl-card" href="repository.mykodiaddons/repository.mykodiaddons-1.0.1.zip" download>
+                    <span class="name">My Kodi Addons Repository</span>
+                    <span class="ver">v1.0.1</span>
+                    <span class="go">Download .zip &rarr;</span>
+                </a>
+            </div>
+        </section>
+
+        <section id="addons">
+            <h2>Included add-ons</h2>
+            <div class="addons">
+                <article class="addon">
+                    <span class="tag">Video</span>
+                    <h3>NLZiet</h3>
+                    <div class="id">plugin.video.nlziet</div>
+                </article>
+                <article class="addon">
+                    <span class="tag">Video</span>
+                    <h3>Videoland</h3>
+                    <div class="id">plugin.video.videoland.nl</div>
+                </article>
+                <article class="addon">
+                    <span class="tag">Video</span>
+                    <h3>XCUI Streams</h3>
+                    <div class="id">plugin.video.iptvxc</div>
+                </article>
+                <article class="addon">
+                    <span class="tag audio">Audio</span>
+                    <h3>Resonance</h3>
+                    <div class="id">plugin.audio.resonance</div>
+                </article>
+                <article class="addon">
+                    <span class="tag service">Service</span>
+                    <h3>LibreELEC Backupper</h3>
+                    <div class="id">service.libreelec.backupper</div>
+                </article>
+            </div>
+        </section>
+
+    </main>
+
+    <footer>
+        Built for <a href="https://kodi.tv/" target="_blank" rel="noopener">Kodi</a> &middot;
+        <a href="https://github.com/Nigel1992/kodi-repository" target="_blank" rel="noopener">View on GitHub</a>
+    </footer>
+
+    <script>
+        document.querySelectorAll(".copy").forEach(function (btn) {
+            btn.addEventListener("click", function () {
+                var text = btn.getAttribute("data-copy");
+                var done = function () {
+                    var original = btn.textContent;
+                    btn.textContent = "Copied!";
+                    btn.classList.add("done");
+                    setTimeout(function () {
+                        btn.textContent = original;
+                        btn.classList.remove("done");
+                    }, 1600);
+                };
+                if (navigator.clipboard && navigator.clipboard.writeText) {
+                    navigator.clipboard.writeText(text).then(done).catch(function () {});
+                } else {
+                    var t = document.createElement("textarea");
+                    t.value = text;
+                    t.style.position = "fixed";
+                    t.style.opacity = "0";
+                    document.body.appendChild(t);
+                    t.select();
+                    try { document.execCommand("copy"); done(); } catch (e) {}
+                    document.body.removeChild(t);
+                }
+            });
+        });
+    </script>
+
 </body>
 </html>
