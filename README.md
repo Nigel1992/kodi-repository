@@ -1,3 +1,5 @@
+[![Discord](https://img.shields.io/badge/Discord-Join%20Us-5865F2?logo=discord&logoColor=white)](https://discord.gg/UbPRh74PzV)
+
 # Nigel1992 Kodi Addons Repository
 
 [![GitHub Stars](https://img.shields.io/github/stars/Nigel1992/kodi-repository?style=for-the-badge)](https://github.com/Nigel1992/kodi-repository/stargazers)
