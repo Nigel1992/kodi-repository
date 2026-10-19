@@ -200,6 +200,14 @@ def generate_index_pages():
     write_index(addons_dir, "addons", entries)
     print(f"Generated {addons_dir}/index.html ({len(entries)} entries)")
 
+    # Listing for the repository root so Kodi can browse from the short URL
+    # https://nigel1992.github.io/kodi-repository down to the addon ZIPs
+    root_entries = [(addons_dir + "/", addons_dir)]
+    root_entries += [(f, f) for f in sorted(os.listdir("."))
+                     if f.endswith(".zip")]
+    write_index(".", "kodi-repository", root_entries)
+    print(f"Generated ./index.html ({len(root_entries)} entries)")
+
 def generate_addons_xml():
     """
     Generates a repository addons.xml file from each addons addon.xml file
