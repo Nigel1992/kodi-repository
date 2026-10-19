@@ -56,13 +56,14 @@ jobs:
           python generate_repo.py
           python create_repository_zip.py
 
-      - name: Publish repository ZIP at the source root
+      - name: Publish repository ZIP at the Pages root
         shell: bash
         run: |
           set -euo pipefail
           addon_version=$(python -c 'import xml.etree.ElementTree as ET; print(ET.parse("repository.nigel1992/addon.xml").getroot().attrib["version"])')
           zip_name="repository.nigel1992-${addon_version}.zip"
           cp "repository.nigel1992/${zip_name}" repository.nigel1992.zip
+          git checkout -- index.html
 
       - name: Commit and push changes
         shell: bash
@@ -74,6 +75,7 @@ jobs:
 
           git add -f repository.nigel1992/
           git add -f repository.nigel1992.zip
+          git add -f index.html
 
           if git diff --staged --quiet; then
             echo "No repository changes detected."
