@@ -52,7 +52,17 @@ jobs:
 
       - name: Generate repository files
         working-directory: repository.nigel1992
-        run: python generate_repo.py
+        run: |
+          python generate_repo.py
+          python create_repository_zip.py
+
+      - name: Publish repository ZIP at the source root
+        shell: bash
+        run: |
+          set -euo pipefail
+          addon_version=$(python -c 'import xml.etree.ElementTree as ET; print(ET.parse("repository.nigel1992/addon.xml").getroot().attrib["version"])')
+          zip_name="repository.nigel1992-${addon_version}.zip"
+          cp "repository.nigel1992/${zip_name}" repository.nigel1992.zip
 
       - name: Commit and push changes
         shell: bash
@@ -63,6 +73,7 @@ jobs:
           git config --local user.name "github-actions[bot]"
 
           git add -f repository.nigel1992/
+          git add -f repository.nigel1992.zip
 
           if git diff --staged --quiet; then
             echo "No repository changes detected."
