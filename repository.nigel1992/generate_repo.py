@@ -148,6 +148,58 @@ def create_addon_zips():
         except Exception as e:
             print(f"Error processing {addon_name}: {e}")
 
+def generate_index_pages():
+    """
+    Generate index.html listings for the addons folders.
+    GitHub Pages does not provide directory listings, so Kodi's file browser
+    would show empty folders. Kodi parses simple HTML anchor links, so each
+    folder gets a minimal index.html linking its ZIP files and subfolders.
+    """
+    def write_index(directory, title, entries):
+        lines = [
+            "<!DOCTYPE html>",
+            '<html lang="en">',
+            "<head>",
+            '<meta charset="utf-8">',
+            f"<title>Index of {title}</title>",
+            "</head>",
+            "<body>",
+            f"<h1>Index of {title}</h1>",
+        ]
+        for href, label in entries:
+            lines.append(f'<a href="{href}">{label}</a><br>')
+        lines += ["</body>", "</html>"]
+        with open(os.path.join(directory, "index.html"), "w", encoding="utf-8") as f:
+            f.write("\n".join(lines) + "\n")
+
+    addons_dir = "addons"
+
+    # Listing for each addon folder: version directories and ZIP packages
+    for addon_name in sorted(os.listdir(addons_dir)):
+        addon_path = os.path.join(addons_dir, addon_name)
+        if not os.path.isdir(addon_path):
+            continue
+
+        subdirs = sorted(
+            d for d in os.listdir(addon_path)
+            if os.path.isdir(os.path.join(addon_path, d)) and not d.startswith(".")
+        )
+        zips = sorted(f for f in os.listdir(addon_path) if f.endswith(".zip"))
+        entries = [(d + "/", d) for d in subdirs] + [(z, z) for z in zips]
+        write_index(addon_path, addon_name, entries)
+        print(f"Generated {addon_path}/index.html ({len(entries)} entries)")
+
+    # Listing for the addons folder itself: one link per addon
+    addon_dirs = sorted(
+        d for d in os.listdir(addons_dir)
+        if os.path.isdir(os.path.join(addons_dir, d)) and not d.startswith(".")
+    )
+    entries = [(d + "/", d) for d in addon_dirs]
+    entries += [(name, name) for name in ("addons.xml", "addons.xml.md5")
+                if os.path.exists(os.path.join(addons_dir, name))]
+    write_index(addons_dir, "addons", entries)
+    print(f"Generated {addons_dir}/index.html ({len(entries)} entries)")
+
 def generate_addons_xml():
     """
     Generates a repository addons.xml file from each addons addon.xml file
@@ -198,7 +250,11 @@ def generate_addons_xml():
     
     print(f"Generated {output_path} and {output_path}.md5")
 
+    # GitHub Pages has no directory listings; generate index.html files so
+    # Kodi's "Install from zip file" browser can see the packages.
+    generate_index_pages()
+
 if __name__ == "__main__":
     if not os.path.exists("addons"):
         os.makedirs("addons")
-    generate_addons_xml() 
+    generate_addons_xml()  
