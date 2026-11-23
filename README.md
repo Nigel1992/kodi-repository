@@ -95,66 +95,7 @@ Add-ons in this repository notify you when updates are available. To ensure you 
 
 ## 💖 Support the Project
 
-All donations go towards your chosen charity. You can pick any charity you'd like, and 5% is retained due to Ko-Fi fees. As a thank you, your name will be listed as a supporter/donor in a GitHub project. Feel free to email me at thedjskywalker@gmail.com for proof! :)
+I build this project in my free time and don't need donations for myself. If you'd like to give something back, I'd kindly ask you to donate to a charity of your choice instead — they need it far more than I do. If you still prefer to support me directly in private, thank you so much; it's genuinely appreciated.
 
 [![Ko-Fi](https://img.shields.io/badge/Ko--Fi-Support%20me-FF5E5B?style=for-the-badge&logo=ko-fi&logoColor=white)](https://ko-fi.com/nigel1992)
 [![PayPal](https://img.shields.io/badge/PayPal-Donate-00457C?style=for-the-badge&logo=paypal&logoColor=white)](https://www.paypal.com/donate/?hosted_button_id=KYV9ARF99ZSCE)
-
----
-
-## Contributing
-
-Contributions are welcome! To contribute:
-1. Fork the repository
-2. Create a feature branch
-3. Submit a pull request
-
-## Support
-
-For support, file an issue on GitHub or contact via the Kodi forums.
-
----
-
-
-
-## Automatic addon releases
-
-The **Update Repository** GitHub Actions workflow checks hourly (at minute 17)
-for the latest stable GitHub release from:
-
-- [Videoland](https://github.com/Nigel1992/Videoland-Kodi-Addon/releases)
-- [NLZIET](https://github.com/Nigel1992/NLZiet-Kodi-Addon/releases)
-- [XCUI Streams IPTV](https://github.com/Nigel1992/plugin.video.iptvxc/releases)
-
-It mirrors the published installable ZIP unchanged, validates the addon ID and
-version, imports its metadata and artwork, and regenerates `addons.xml` and its
-MD5 checksum. Existing ZIP versions are retained. Unchanged releases produce no
-commit. Failed downloads or validation stop the workflow before anything is pushed.
-No additional secret is required: the workflow uses its built-in GitHub token.
-
-To publish an update, increase the version in the source addon’s `addon.xml` and
-publish a stable GitHub release with exactly one matching asset named
-`<addon-id>-<version>.zip`. Drafts, prereleases and source-only commits are not
-imported. GitHub scheduled runs can be delayed and schedules in public repositories
-can be disabled after 60 days without repository activity. Check the Actions page
-if updates stop; you can also run **Update Repository → Run workflow** manually.
-Kodi discovers updates on its next repository check; enable automatic addon updates
-to install them automatically.
-
-### Add another source repository
-
-Edit [`addon-sources.json`](addon-sources.json) and add an entry mapping the addon's
-ID (from its `addon.xml`) to its GitHub repository URL. For example:
-
-```json
-"plugin.video.example": "https://github.com/Nigel1992/example-addon"
-```
-
-Separate entries with commas to keep the file valid JSON. Commit to `master`;
-the workflow runs immediately and then checks that repository hourly too. No
-workflow or Python changes, source-repository export workflow, or PAT are needed.
-The repository must be public and publish a stable release with an installable
-`<addon-id>-<version>.zip` asset. The ZIP must contain a top-level `<addon-id>/`
-folder with `addon.xml` and the referenced artwork. Publishing a release without
-that asset fails validation; finish uploading it and rerun the workflow.
-Removing an entry stops future syncing but keeps previously imported packages.
